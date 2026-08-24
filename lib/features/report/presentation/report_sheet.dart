@@ -8,7 +8,7 @@ import '../../incidents/models/incident.dart';
 class ReportSheet extends StatefulWidget {
   const ReportSheet({super.key, required this.onSubmit});
 
-  final ValueChanged<Incident> onSubmit;
+  final Future<void> Function(Incident) onSubmit;
 
   @override
   State<ReportSheet> createState() => _ReportSheetState();
@@ -232,9 +232,9 @@ class _ReportSheetState extends State<ReportSheet> {
               width: double.infinity,
               height: 54,
               child: FilledButton(
-                onPressed: () {
+                onPressed: () async {
                   if (!_formKey.currentState!.validate()) return;
-                  widget.onSubmit(
+                  await widget.onSubmit(
                     Incident(
                       type: _type,
                       description: _descriptionController.text.trim(),
@@ -247,6 +247,7 @@ class _ReportSheetState extends State<ReportSheet> {
                       longitude: _longitude,
                     ),
                   );
+                  if (!context.mounted) return;
                   Navigator.pop(context);
                 },
                 style: FilledButton.styleFrom(

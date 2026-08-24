@@ -34,8 +34,8 @@ The Flutter prototype currently includes:
   resolution states.
 - **Safety hub:** emergency services dialing through `112` and emergency
   contact entries.
-- **Admin dashboard:** report totals, pending review cards, risk assignment,
-  and approve, flag, or reject actions for local prototype data.
+- **Admin dashboard:** available in the Flask web app for report totals,
+  pending review, risk assignment, and approve, flag, or reject actions.
 
 The displayed data includes local prototype data, and newly submitted reports
 are persisted locally on the device. Production authentication, remote media
@@ -146,7 +146,9 @@ python -m pip install -r backend/requirements.txt
 python backend/app.py
 ```
 
-The API runs at `http://127.0.0.1:5000` by default. Available endpoints are
+The API runs at `http://127.0.0.1:5000` on the development machine by default.
+Flask listens on all interfaces so Android emulators and local devices can
+connect. Available endpoints are
 `GET /health`, `GET /api/incidents`, `POST /api/incidents`, and
 `POST /api/admin/login`. Admins can use
 `PATCH /api/admin/incidents/<id>` with `Authorization: Bearer <token>` to set
@@ -167,19 +169,15 @@ python backend/app.py
 
 Use a proper secret manager and identity provider before production.
 
-For an Android emulator, use `http://10.0.2.2:5000` to reach the development
-machine. Physical devices need the host computer's local network IP and a
-Flask server bound to the appropriate interface.
-
-The Flutter Admin tab requires the configured username and password. To enable
-remote moderation actions after sign-in, provide the same token at build time:
+For an Android emulator, Flutter uses `http://10.0.2.2:5000` automatically.
+For a physical device, use the development machine's local network IP:
 
 ```bash
-flutter run --dart-define=CRIMETRACK_ADMIN_TOKEN=replace-with-a-local-secret
+flutter run --dart-define=CRIMETRACK_API_BASE_URL=http://192.168.1.10:5000
 ```
 
-Without this define, admin actions still update the local prototype state but
-are not sent to the protected API.
+Replace the example IP with the development machine's LAN IP. Restart Flask
+after changing its host or port configuration.
 
 ### Validate the project
 

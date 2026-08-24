@@ -14,6 +14,8 @@ class IncidentRepository {
       _client = client ?? http.Client();
 
   static String get _defaultBaseUrl {
+    const configuredUrl = String.fromEnvironment('CRIMETRACK_API_BASE_URL');
+    if (configuredUrl.isNotEmpty) return configuredUrl;
     if (kIsWeb) return 'http://127.0.0.1:5000';
     return defaultTargetPlatform == TargetPlatform.android
         ? 'http://10.0.2.2:5000'

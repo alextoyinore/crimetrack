@@ -70,13 +70,20 @@ class _ShellState extends State<Shell> {
     });
   }
 
-  void _addIncident(Incident incident) {
+  Future<void> _addIncident(Incident incident) async {
     setState(() {
       _userIncidents.insert(0, incident);
       _incidents.insert(0, incident);
     });
-    _repository.saveUserIncidents(_userIncidents);
-    unawaited(_repository.submitIncident(incident));
+    await _repository.saveUserIncidents(_userIncidents);
+    final synced = await _repository.submitIncident(incident);
+    if (!synced && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Report saved locally; server sync failed'),
+        ),
+      );
+    }
   }
 
   void _showReport() => showModalBottomSheet(
