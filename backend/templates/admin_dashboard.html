@@ -9,7 +9,7 @@
 <body>
   <header class="topbar">
     <a class="wordmark" href="{{ url_for('admin_dashboard') }}">CrimeTrack</a>
-    <div class="topbar-actions"><span class="location-label">Lagos Metro</span><form method="post" action="{{ url_for('admin_logout') }}"><button class="button button-quiet" type="submit">Sign out</button></form></div>
+    <div class="topbar-actions"><a class="button button-secondary" href="{{ url_for('admin_analytics') }}">Analytics</a><span class="location-label">Nigeria</span><label class="theme-control">Theme<select id="theme-preference" aria-label="Theme preference"><option value="system">System</option><option value="light">Light</option><option value="dark">Dark</option></select></label><form method="post" action="{{ url_for('admin_logout') }}"><button class="button button-quiet" type="submit">Sign out</button></form></div>
   </header>
   <main class="page-shell">
     <section class="page-heading"><div><p class="eyebrow">Operations center</p><h1>Incident overview</h1><p class="muted">Monitor, validate, and classify community reports.</p></div><div class="live-status"><i></i> Live data</div></section>
@@ -27,4 +27,14 @@
     </section>
   </main>
 </body>
+<script>
+  const themePreference = document.querySelector('#theme-preference');
+  const savedTheme = localStorage.getItem('crimetrack.admin.theme') || 'system';
+  themePreference.value = savedTheme;
+  document.documentElement.dataset.theme = savedTheme;
+  themePreference.addEventListener('change', () => {
+    localStorage.setItem('crimetrack.admin.theme', themePreference.value);
+    document.documentElement.dataset.theme = themePreference.value;
+  });
+</script>
 </html>

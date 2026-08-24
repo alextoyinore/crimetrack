@@ -77,7 +77,7 @@ class _ReportSheetState extends State<ReportSheet> {
   Future<void> _chooseEvidence() async {
     final selection = await showModalBottomSheet<bool>(
       context: context,
-      backgroundColor: const Color(0xFF242C31),
+      backgroundColor: Theme.of(context).colorScheme.surface,
       builder: (context) => SafeArea(
         child: Wrap(
           children: [
@@ -109,8 +109,8 @@ class _ReportSheetState extends State<ReportSheet> {
   InputDecoration _input(String hint) => InputDecoration(
     hintText: hint,
     filled: true,
-    fillColor: const Color(0xFF242C31),
-    hintStyle: const TextStyle(color: Color(0xFF7E898F)),
+    fillColor: Theme.of(context).colorScheme.surface,
+    hintStyle: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
     border: OutlineInputBorder(
       borderRadius: BorderRadius.circular(9),
       borderSide: BorderSide.none,
@@ -146,9 +146,11 @@ class _ReportSheetState extends State<ReportSheet> {
               ],
             ),
             const SizedBox(height: 6),
-            const Text(
+            Text(
               'Your report helps keep the community informed.',
-              style: TextStyle(color: AppTheme.muted),
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
             ),
             const SizedBox(height: 20),
             const Text(

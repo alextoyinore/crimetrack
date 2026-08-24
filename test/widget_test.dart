@@ -47,23 +47,15 @@ void main() {
     await tester.tap(find.text('My reports'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Theft reported'), findsNWidgets(2));
+    expect(find.text('Theft reported'), findsOneWidget);
     expect(find.text('Ikeja, Lagos'), findsOneWidget);
   });
 
-  testWidgets('filters incidents by type', (WidgetTester tester) async {
+  testWidgets('does not display dummy incidents', (WidgetTester tester) async {
     await tester.pumpWidget(const CrimeTrackApp());
     await tester.pump(const Duration(milliseconds: 1600));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Incidents'));
-    await tester.pumpAndSettle();
-
-    await tester.tap(find.text('All types'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Robbery').last);
-    await tester.pumpAndSettle();
-
-    expect(find.text('Robbery'), findsNWidgets(2));
+    expect(find.text('Robbery'), findsNothing);
     expect(find.text('Theft'), findsNothing);
   });
 

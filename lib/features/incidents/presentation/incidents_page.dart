@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/map_preview.dart';
 import '../../../core/widgets/page_title.dart';
 import '../models/incident.dart';
@@ -40,7 +39,7 @@ class _IncidentsPageState extends State<IncidentsPage> {
         children: [
           const PageTitle(
             title: 'Incident map',
-            subtitle: 'Verified reports across Lagos Metro',
+            subtitle: 'Verified reports across Nigeria',
           ),
           const SizedBox(height: 18),
           _Filters(
@@ -56,12 +55,14 @@ class _IncidentsPageState extends State<IncidentsPage> {
           MapPreview(incidents: incidents),
           const SizedBox(height: 18),
           if (incidents.isEmpty)
-            const Padding(
+            Padding(
               padding: EdgeInsets.symmetric(vertical: 26),
               child: Center(
                 child: Text(
                   'No incidents match these filters',
-                  style: TextStyle(color: AppTheme.muted),
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
                 ),
               ),
             )
@@ -162,7 +163,7 @@ class _FilterDropdown extends StatelessWidget {
     decoration: InputDecoration(
       labelText: label,
       filled: true,
-      fillColor: AppTheme.surface,
+      fillColor: Theme.of(context).colorScheme.surface,
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(9),
         borderSide: BorderSide.none,
@@ -199,7 +200,7 @@ class IncidentItem extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.all(14),
     decoration: BoxDecoration(
-      color: AppTheme.surface,
+      color: Theme.of(context).colorScheme.surface,
       borderRadius: BorderRadius.circular(11),
     ),
     child: Row(
@@ -218,14 +219,20 @@ class IncidentItem extends StatelessWidget {
               const SizedBox(height: 4),
               Text(
                 location,
-                style: const TextStyle(color: AppTheme.muted, fontSize: 12),
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  fontSize: 12,
+                ),
               ),
             ],
           ),
         ),
         Text(
           time,
-          style: const TextStyle(color: Color(0xFF7E898F), fontSize: 11),
+          style: TextStyle(
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+            fontSize: 11,
+          ),
         ),
       ],
     ),

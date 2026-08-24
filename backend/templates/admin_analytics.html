@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Analytics | CrimeTrack</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='admin.css') }}">
+</head>
+<body>
+  <header class="topbar">
+    <a class="wordmark" href="{{ url_for('admin_dashboard') }}">CrimeTrack</a>
+    <div class="topbar-actions"><a class="button button-secondary" href="{{ url_for('admin_dashboard') }}">Report queue</a><span class="location-label">Nigeria</span><label class="theme-control">Theme<select id="theme-preference" aria-label="Theme preference"><option value="system">System</option><option value="light">Light</option><option value="dark">Dark</option></select></label><form method="post" action="{{ url_for('admin_logout') }}"><button class="button button-quiet" type="submit">Sign out</button></form></div>
+  </header>
+  <main class="page-shell">
+    <section class="page-heading"><div><p class="eyebrow">Operations intelligence</p><h1>Report analytics</h1><p class="muted">A live summary of reports recorded across Nigeria.</p></div></section>
+    <section class="analytics-grid">
+      <article class="content-panel analytics-panel"><h2>Last 14 days</h2>{% if daily_trend %}<div class="bar-chart">{% for item in daily_trend %}<div class="bar-item"><div class="bar" style="height: {{ [item.total * 24, 12]|max }}px" title="{{ item.total }} reports"></div><small>{{ item.label[5:] }}</small><strong>{{ item.total }}</strong></div>{% endfor %}</div>{% else %}<div class="empty-state"><strong>No recent reports</strong><span>New submissions will appear here.</span></div>{% endif %}</article>
+      <article class="content-panel analytics-panel"><h2>By status</h2>{% for item in status_breakdown %}<div class="breakdown-row"><span>{{ item.label|capitalize }}</span><strong>{{ item.total }}</strong></div>{% else %}<div class="empty-state"><strong>No status data</strong></div>{% endfor %}</article>
+      <article class="content-panel analytics-panel"><h2>By risk</h2>{% for item in risk_breakdown %}<div class="breakdown-row"><span class="risk risk-{{ item.label }}"><i></i>{{ item.label|capitalize }}</span><strong>{{ item.total }}</strong></div>{% else %}<div class="empty-state"><strong>No risk data</strong></div>{% endfor %}</article>
+      <article class="content-panel analytics-panel"><h2>By incident type</h2>{% for item in type_breakdown %}<div class="breakdown-row"><span>{{ item.label }}</span><strong>{{ item.total }}</strong></div>{% else %}<div class="empty-state"><strong>No type data</strong></div>{% endfor %}</article>
+    </section>
+  </main>
+  <script>
+    const themePreference = document.querySelector('#theme-preference');
+    const savedTheme = localStorage.getItem('crimetrack.admin.theme') || 'system';
+    themePreference.value = savedTheme;
+    document.documentElement.dataset.theme = savedTheme;
+    themePreference.addEventListener('change', () => {
+      localStorage.setItem('crimetrack.admin.theme', themePreference.value);
+      document.documentElement.dataset.theme = themePreference.value;
+    });
+  </script>
+</body>
+</html>

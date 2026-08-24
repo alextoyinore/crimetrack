@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../../../core/theme/app_theme.dart';
 import '../../home/presentation/home_page.dart';
 import '../../incidents/presentation/incidents_page.dart';
 import '../../incidents/models/incident.dart';
@@ -9,9 +10,17 @@ import '../../incidents/data/incident_repository.dart';
 import '../../reports/presentation/reports_page.dart';
 import '../../safety/presentation/safety_page.dart';
 import '../../report/presentation/report_sheet.dart';
+import '../../notifications/models/notification.dart';
 
 class Shell extends StatefulWidget {
-  const Shell({super.key});
+  const Shell({
+    super.key,
+    required this.onThemeModeChanged,
+    required this.themeMode,
+  });
+
+  final ValueChanged<ThemeMode> onThemeModeChanged;
+  final ThemeMode themeMode;
   @override
   State<Shell> createState() => _ShellState();
 }
@@ -20,43 +29,40 @@ class _ShellState extends State<Shell> {
   int _tab = 0;
   final _repository = IncidentRepository();
   final List<Incident> _userIncidents = [];
-  final List<Incident> _incidents = [
-    Incident(
-      type: 'Theft',
-      description: 'Reported theft incident.',
-      location: 'Allen Avenue, Ikeja',
-      reportedAt: DateTime.now().subtract(const Duration(minutes: 12)),
-      status: IncidentStatus.verified,
-      risk: IncidentRisk.medium,
-      latitude: 6.6194,
-      longitude: 3.3488,
-    ),
-    Incident(
-      type: 'Robbery',
-      description: 'Reported robbery incident.',
-      location: 'Ojuelegba, Surulere',
-      reportedAt: DateTime.now().subtract(const Duration(minutes: 38)),
-      status: IncidentStatus.verified,
-      risk: IncidentRisk.high,
-      latitude: 6.5158,
-      longitude: 3.3447,
-    ),
-    Incident(
-      type: 'Suspicious activity',
-      description: 'Reported suspicious activity.',
-      location: 'Yaba, Lagos',
-      reportedAt: DateTime.now().subtract(const Duration(hours: 1)),
-      status: IncidentStatus.pending,
-      risk: IncidentRisk.medium,
-      latitude: 6.5244,
-      longitude: 3.3792,
-    ),
-  ];
+  final List<AppNotification> _notifications = [];
+  Timer? _notificationTimer;
+  final List<Incident> _incidents = [];
 
   @override
   void initState() {
     super.initState();
     _restoreUserIncidents();
+    _restoreIncidents();
+    _restoreNotifications();
+    _notificationTimer = Timer.periodic(
+      const Duration(seconds: 15),
+      (_) => _restoreNotifications(),
+    );
+  }
+
+  Future<void> _restoreIncidents() async {
+    final incidents = await _repository.loadIncidents();
+    if (!mounted) return;
+    setState(() {
+      _incidents
+        ..clear()
+        ..addAll(incidents);
+    });
+  }
+
+  Future<void> _restoreNotifications() async {
+    final saved = await _repository.loadNotifications();
+    if (!mounted) return;
+    setState(() {
+      _notifications
+        ..clear()
+        ..addAll(saved);
+    });
   }
 
   Future<void> _restoreUserIncidents() async {
@@ -77,6 +83,7 @@ class _ShellState extends State<Shell> {
     });
     await _repository.saveUserIncidents(_userIncidents);
     final synced = await _repository.submitIncident(incident);
+    if (synced) await _restoreNotifications();
     if (!synced && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -86,10 +93,69 @@ class _ShellState extends State<Shell> {
     }
   }
 
+  Future<void> _showNotifications() async {
+    await _restoreNotifications();
+    if (!mounted) return;
+    await showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Theme.of(context).colorScheme.surface,
+      builder: (context) => SafeArea(
+        child: SizedBox(
+          height: 420,
+          child: _notifications.isEmpty
+              ? const Center(child: Text('No notifications yet'))
+              : ListView.separated(
+                  padding: const EdgeInsets.all(20),
+                  itemCount: _notifications.length,
+                  separatorBuilder: (_, _) => const Divider(),
+                  itemBuilder: (context, index) {
+                    final notification = _notifications[index];
+                    return ListTile(
+                      leading: Icon(
+                        notification.read
+                            ? Icons.notifications_none
+                            : Icons.notifications_active,
+                        color: notification.read ? Colors.grey : AppTheme.amber,
+                      ),
+                      title: Text(notification.title),
+                      subtitle: Text(notification.message),
+                    );
+                  },
+                ),
+        ),
+      ),
+    );
+    await _repository.markNotificationsRead();
+    if (!mounted) return;
+    final readNotifications = _notifications
+        .map(
+          (item) => AppNotification(
+            id: item.id,
+            title: item.title,
+            message: item.message,
+            createdAt: item.createdAt,
+            read: true,
+            incidentId: item.incidentId,
+          ),
+        )
+        .toList();
+    setState(() {
+      _notifications
+        ..clear()
+        ..addAll(readNotifications);
+    });
+  }
+
+  @override
+  void dispose() {
+    _notificationTimer?.cancel();
+    super.dispose();
+  }
+
   void _showReport() => showModalBottomSheet(
     context: context,
     isScrollControlled: true,
-    backgroundColor: const Color(0xFF1A2025),
+    backgroundColor: Theme.of(context).colorScheme.surface,
     builder: (_) => ReportSheet(onSubmit: _addIncident),
   );
 
@@ -99,7 +165,16 @@ class _ShellState extends State<Shell> {
       child: IndexedStack(
         index: _tab,
         children: [
-          HomePage(onReport: _showReport, incidents: _incidents),
+          HomePage(
+            onReport: _showReport,
+            incidents: _incidents,
+            onNotifications: _showNotifications,
+            unreadNotifications: _notifications
+                .where((item) => !item.read)
+                .length,
+            onThemeModeChanged: widget.onThemeModeChanged,
+            themeMode: widget.themeMode,
+          ),
           IncidentsPage(incidents: _incidents),
           ReportsPage(incidents: _incidents),
           const SafetyPage(),
@@ -109,8 +184,8 @@ class _ShellState extends State<Shell> {
     bottomNavigationBar: NavigationBar(
       selectedIndex: _tab,
       onDestinationSelected: (value) => setState(() => _tab = value),
-      backgroundColor: const Color(0xFF171C20),
-      indicatorColor: const Color(0xFF3A3426),
+      backgroundColor: Theme.of(context).colorScheme.surface,
+      indicatorColor: Theme.of(context).colorScheme.secondaryContainer,
       destinations: const [
         NavigationDestination(
           icon: Icon(Icons.grid_view_rounded),

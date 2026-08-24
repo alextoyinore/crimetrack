@@ -17,7 +17,7 @@ class Metric extends StatelessWidget {
     child: Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: const Color(0xFF1A2025),
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(11),
       ),
       child: Column(

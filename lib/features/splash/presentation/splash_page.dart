@@ -6,7 +6,14 @@ import '../../../core/theme/app_theme.dart';
 import '../../onboarding/presentation/onboarding_page.dart';
 
 class SplashPage extends StatefulWidget {
-  const SplashPage({super.key});
+  const SplashPage({
+    super.key,
+    required this.onThemeModeChanged,
+    required this.themeMode,
+  });
+
+  final ValueChanged<ThemeMode> onThemeModeChanged;
+  final ThemeMode themeMode;
 
   @override
   State<SplashPage> createState() => _SplashPageState();
@@ -34,7 +41,12 @@ class _SplashPageState extends State<SplashPage>
   void _continue() {
     if (!mounted) return;
     Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (_) => const OnboardingGate()),
+      MaterialPageRoute(
+        builder: (_) => OnboardingGate(
+          onThemeModeChanged: widget.onThemeModeChanged,
+          themeMode: widget.themeMode,
+        ),
+      ),
     );
   }
 
@@ -87,10 +99,10 @@ class _SplashPageState extends State<SplashPage>
               ),
             ),
             const SizedBox(height: 7),
-            const Text(
-              'LAGOS METRO',
+            Text(
+              'NIGERIA',
               style: TextStyle(
-                color: AppTheme.muted,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
                 fontSize: 11,
                 fontWeight: FontWeight.w600,
                 letterSpacing: 2,

@@ -4,10 +4,62 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/map_preview.dart';
 import '../../../core/widgets/metric.dart';
 import '../../incidents/models/incident.dart';
+import '../../help/presentation/help_page.dart';
 
 class HomePage extends StatelessWidget {
-  const HomePage({super.key, required this.onReport, required this.incidents});
+  const HomePage({
+    super.key,
+    required this.onReport,
+    required this.incidents,
+    required this.onNotifications,
+    required this.unreadNotifications,
+    required this.onThemeModeChanged,
+    required this.themeMode,
+  });
   final VoidCallback onReport;
+  final VoidCallback onNotifications;
+  final int unreadNotifications;
+  final ValueChanged<ThemeMode> onThemeModeChanged;
+  final ThemeMode themeMode;
+
+  void _showThemePreferences(BuildContext context) {
+    showModalBottomSheet<void>(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ...ThemeMode.values.map(
+              (mode) => ListTile(
+                title: Text(
+                  mode.name[0].toUpperCase() + mode.name.substring(1),
+                ),
+                trailing: mode == themeMode
+                    ? const Icon(Icons.check, color: AppTheme.amber)
+                    : null,
+                onTap: () {
+                  onThemeModeChanged(mode);
+                  Navigator.pop(context);
+                },
+              ),
+            ),
+            ListTile(
+              leading: const Icon(Icons.help_outline),
+              title: const Text('Help and safety information'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const HelpPage()),
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   final List<Incident> incidents;
 
   @override
@@ -28,7 +80,7 @@ class HomePage extends StatelessWidget {
               child: const Icon(Icons.radar, color: AppTheme.navigation),
             ),
             const SizedBox(width: 11),
-            const Column(
+            Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
@@ -40,34 +92,40 @@ class HomePage extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  'LAGOS METRO',
+                  'NIGERIA',
                   style: TextStyle(
                     fontSize: 10,
-                    color: Color(0xFF879198),
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                     letterSpacing: 1.2,
                   ),
                 ),
               ],
             ),
             const Spacer(),
+            IconButton(
+              onPressed: () => _showThemePreferences(context),
+              icon: const Icon(Icons.tune_rounded),
+              tooltip: 'Theme preferences',
+            ),
             Stack(
               children: [
                 IconButton(
-                  onPressed: () {},
+                  onPressed: onNotifications,
                   icon: const Icon(Icons.notifications_none_rounded),
                 ),
-                Positioned(
-                  right: 10,
-                  top: 9,
-                  child: Container(
-                    width: 7,
-                    height: 7,
-                    decoration: const BoxDecoration(
-                      color: AppTheme.danger,
-                      shape: BoxShape.circle,
+                if (unreadNotifications > 0)
+                  Positioned(
+                    right: 10,
+                    top: 9,
+                    child: Container(
+                      width: 8,
+                      height: 8,
+                      decoration: const BoxDecoration(
+                        color: AppTheme.danger,
+                        shape: BoxShape.circle,
+                      ),
                     ),
                   ),
-                ),
               ],
             ),
           ],
@@ -91,9 +149,12 @@ class HomePage extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 10),
-        const Text(
+        Text(
           'Your community watch, in real time.',
-          style: TextStyle(color: AppTheme.muted, fontSize: 14),
+          style: TextStyle(
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+            fontSize: 14,
+          ),
         ),
         const SizedBox(height: 22),
         SizedBox(
@@ -166,6 +227,13 @@ class HomePage extends StatelessWidget {
                   '${incidents.where((item) => item.status == IncidentStatus.resolved).length}',
               label: 'Resolved',
               color: AppTheme.success,
+            ),
+            const SizedBox(width: 10),
+            Metric(
+              value:
+                  '${incidents.where((item) => item.status == IncidentStatus.rejected).length}',
+              label: 'Rejected',
+              color: AppTheme.danger,
             ),
           ],
         ),

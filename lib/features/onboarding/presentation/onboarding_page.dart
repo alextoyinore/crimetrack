@@ -5,7 +5,14 @@ import '../../../core/theme/app_theme.dart';
 import '../../shell/presentation/shell.dart';
 
 class OnboardingGate extends StatefulWidget {
-  const OnboardingGate({super.key});
+  const OnboardingGate({
+    super.key,
+    required this.onThemeModeChanged,
+    required this.themeMode,
+  });
+
+  final ValueChanged<ThemeMode> onThemeModeChanged;
+  final ThemeMode themeMode;
 
   @override
   State<OnboardingGate> createState() => _OnboardingGateState();
@@ -33,12 +40,27 @@ class _OnboardingGateState extends State<OnboardingGate> {
     if (_complete == null) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
-    return _complete! ? const Shell() : const OnboardingPage();
+    return _complete!
+        ? Shell(
+            onThemeModeChanged: widget.onThemeModeChanged,
+            themeMode: widget.themeMode,
+          )
+        : OnboardingPage(
+            onThemeModeChanged: widget.onThemeModeChanged,
+            themeMode: widget.themeMode,
+          );
   }
 }
 
 class OnboardingPage extends StatefulWidget {
-  const OnboardingPage({super.key});
+  const OnboardingPage({
+    super.key,
+    required this.onThemeModeChanged,
+    required this.themeMode,
+  });
+
+  final ValueChanged<ThemeMode> onThemeModeChanged;
+  final ThemeMode themeMode;
 
   @override
   State<OnboardingPage> createState() => _OnboardingPageState();
@@ -77,9 +99,14 @@ class _OnboardingPageState extends State<OnboardingPage> {
     final preferences = await SharedPreferences.getInstance();
     await preferences.setBool(_completeKey, true);
     if (!mounted) return;
-    Navigator.of(
-      context,
-    ).pushReplacement(MaterialPageRoute(builder: (_) => const Shell()));
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(
+        builder: (_) => Shell(
+          onThemeModeChanged: widget.onThemeModeChanged,
+          themeMode: widget.themeMode,
+        ),
+      ),
+    );
   }
 
   @override
@@ -198,8 +225,8 @@ class _SlideView extends StatelessWidget {
         Text(
           slide.description,
           textAlign: TextAlign.center,
-          style: const TextStyle(
-            color: AppTheme.muted,
+          style: TextStyle(
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
             fontSize: 15,
             height: 1.45,
           ),

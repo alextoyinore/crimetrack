@@ -74,7 +74,7 @@ class _MapPreviewState extends State<MapPreview> {
     clipBehavior: Clip.antiAlias,
     decoration: BoxDecoration(
       borderRadius: BorderRadius.circular(14),
-      border: Border.all(color: const Color(0xFF30383D)),
+      border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
     ),
     child: Stack(
       children: [
@@ -117,11 +117,7 @@ class _MapPreviewState extends State<MapPreview> {
                         shape: BoxShape.circle,
                         border: Border.all(color: AppTheme.amber, width: 3),
                       ),
-                      child: const Icon(
-                        Icons.my_location,
-                        color: AppTheme.navigation,
-                        size: 20,
-                      ),
+                      child: const Icon(Icons.my_location, size: 20),
                     ),
                   ),
               ],
@@ -139,7 +135,7 @@ class _MapPreviewState extends State<MapPreview> {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
             decoration: BoxDecoration(
-              color: const Color(0xE61A2025),
+              color: Theme.of(context).colorScheme.surface.withAlpha(100),
               borderRadius: BorderRadius.circular(7),
             ),
             child: Row(
@@ -147,10 +143,11 @@ class _MapPreviewState extends State<MapPreview> {
                 const Icon(Icons.my_location, size: 13, color: AppTheme.amber),
                 const SizedBox(width: 6),
                 Text(
-                  _currentLocation == null ? 'Lagos Metro' : 'Current location',
-                  style: const TextStyle(
+                  _currentLocation == null ? 'Nigeria' : 'Current location',
+                  style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w700,
+                    color: Theme.of(context).colorScheme.onSurface,
                   ),
                 ),
               ],
@@ -161,7 +158,7 @@ class _MapPreviewState extends State<MapPreview> {
           top: 8,
           right: 8,
           child: Material(
-            color: const Color(0xE61A2025),
+            color: Theme.of(context).colorScheme.surface.withAlpha(100),
             borderRadius: BorderRadius.circular(7),
             child: IconButton(
               tooltip: 'Locate me',
@@ -178,7 +175,7 @@ class _MapPreviewState extends State<MapPreview> {
             ),
           ),
         ),
-        const Positioned(
+        Positioned(
           bottom: 13,
           right: 13,
           child: Column(
@@ -211,7 +208,10 @@ class MapLegend extends StatelessWidget {
       const SizedBox(width: 5),
       Text(
         label,
-        style: const TextStyle(fontSize: 10, color: Color(0xFFD0D6D8)),
+        style: TextStyle(
+          fontSize: 10,
+          color: Theme.of(context).colorScheme.onSurface,
+        ),
       ),
     ],
   );

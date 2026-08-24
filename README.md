@@ -19,7 +19,7 @@ Location Reporting System.
 
 The Flutter prototype currently includes:
 
-- **Overview:** community status, incident metrics, and a map preview.
+- **Overview:** Nigeria-wide community status, incident metrics, and a map preview.
 - **First-launch onboarding:** three short introduction screens with skip and
   continue controls, shown once per device.
 - **Branded splash screen:** animated CrimeTrack startup screen using the same
@@ -32,6 +32,9 @@ The Flutter prototype currently includes:
   device with the user-triggered "Locate me" action.
 - **My reports:** submitted report history with review, verification, and
   resolution states.
+- **Notifications:** each installation receives a stable random device ID on
+  first launch. The app uses it to show report-submission confirmations and
+  admin status updates in the notification inbox.
 - **Safety hub:** emergency services dialing through `112` and emergency
   contact entries.
 - **Admin dashboard:** available in the Flask web app for report totals,
@@ -39,7 +42,8 @@ The Flutter prototype currently includes:
 
 The displayed data includes local prototype data, and newly submitted reports
 are persisted locally on the device. Production authentication, remote media
-uploads, notifications, and admin validation are planned integration work.
+uploads, OS-level push notifications, and admin validation are planned
+integration work.
 Map rendering now uses
 `flutter_map` with OpenStreetMap tiles and requires no API key for development.
 
@@ -85,12 +89,14 @@ User/Admin interface -> Flask REST API -> Database -> Dashboard and map output
   services, REST, and AJAX or equivalent real-time updates.
 
 The current repository contains the Flutter client and the initial Flask API.
-Authentication, media uploads, notifications, and the admin dashboard remain
-separate integration work.
+Authentication, media uploads, OS-level push delivery, and the admin dashboard
+remain separate integration work.
 
 The initial Flask API is now included in `backend/`. It provides a health
-check, report creation, report listing, SQLite storage, request validation, and
-protected admin moderation for report status and risk level.
+check, report creation, report listing, notification listing and read state,
+SQLite storage, request validation, and protected admin moderation for report
+status and risk level. Report requests include the client-generated `deviceId`;
+notification requests use the same value.
 
 The Flask service also includes a browser-based admin dashboard at
 `http://127.0.0.1:5000/admin`. It provides a session-protected sign-in page,
@@ -149,7 +155,8 @@ python backend/app.py
 The API runs at `http://127.0.0.1:5000` on the development machine by default.
 Flask listens on all interfaces so Android emulators and local devices can
 connect. Available endpoints are
-`GET /health`, `GET /api/incidents`, `POST /api/incidents`, and
+`GET /health`, `GET /api/incidents`, `POST /api/incidents`,
+`GET /api/notifications`, `POST /api/notifications/read`, and
 `POST /api/admin/login`. Admins can use
 `PATCH /api/admin/incidents/<id>` with `Authorization: Bearer <token>` to set
 `pending`, `verified`, `resolved`, `rejected`, or `flagged` status and the

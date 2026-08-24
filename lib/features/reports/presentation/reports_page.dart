@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/page_title.dart';
 import '../../incidents/models/incident.dart';
 
@@ -48,12 +47,15 @@ class ReportRow extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.all(16),
     decoration: BoxDecoration(
-      color: AppTheme.surface,
+      color: Theme.of(context).colorScheme.surface,
       borderRadius: BorderRadius.circular(11),
     ),
     child: Row(
       children: [
-        const Icon(Icons.description_outlined, color: Color(0xFF879198)),
+        Icon(
+          Icons.description_outlined,
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
+        ),
         const SizedBox(width: 13),
         Expanded(
           child: Column(
@@ -63,7 +65,10 @@ class ReportRow extends StatelessWidget {
               const SizedBox(height: 5),
               Text(
                 place,
-                style: const TextStyle(fontSize: 12, color: AppTheme.muted),
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
               ),
             ],
           ),

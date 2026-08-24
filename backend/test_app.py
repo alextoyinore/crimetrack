@@ -43,6 +43,37 @@ class IncidentApiTest(unittest.TestCase):
         self.assertEqual(len(response.json), 1)
         self.assertEqual(response.json[0]["location"], "Ikeja, Lagos")
 
+    def test_notifications_are_scoped_to_device(self):
+        response = self.client.post(
+            "/api/incidents",
+            json={
+                "type": "Theft",
+                "description": "A device-scoped report.",
+                "location": "Ikeja, Lagos",
+                "deviceId": "device-a",
+            },
+        )
+        self.assertEqual(response.status_code, 201)
+
+        response = self.client.get("/api/notifications?deviceId=device-a")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.json), 1)
+        self.assertEqual(response.json[0]["title"], "Report submitted")
+        self.assertEqual(
+            self.client.get("/api/notifications?deviceId=device-b").json, []
+        )
+
+        incident_id = self.client.get("/api/incidents?deviceId=device-a").json[0]["id"]
+        response = self.client.patch(
+            f"/api/admin/incidents/{incident_id}",
+            headers={"Authorization": "Bearer test-token"},
+            json={"status": "verified"},
+        )
+        self.assertEqual(response.status_code, 200)
+        notifications = self.client.get("/api/notifications?deviceId=device-a").json
+        self.assertEqual(len(notifications), 2)
+        self.assertEqual(notifications[0]["title"], "Report status updated")
+
     def test_rejects_invalid_coordinates(self):
         response = self.client.post(
             "/api/incidents",
@@ -109,6 +140,31 @@ class IncidentApiTest(unittest.TestCase):
         response = self.client.get("/admin")
         self.assertEqual(response.status_code, 302)
         self.assertIn("/admin/login", response.location)
+
+    def test_admin_analytics_requires_login_and_uses_incidents(self):
+        response = self.client.get("/admin/analytics")
+        self.assertEqual(response.status_code, 302)
+        self.assertIn("/admin/login", response.location)
+
+        app = create_app(
+            Path(self.temp_directory.name) / "analytics.db", admin_token="test-token"
+        )
+        app.config["ADMIN_USERNAME"] = "admin"
+        app.config["ADMIN_PASSWORD"] = "secret"
+        client = app.test_client()
+        client.post(
+            "/api/incidents",
+            json={
+                "type": "Robbery",
+                "description": "Analytics report.",
+                "location": "Abuja",
+            },
+        )
+        client.post("/admin/login", data={"username": "admin", "password": "secret"})
+        response = client.get("/admin/analytics")
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(b"Report analytics", response.data)
+        self.assertIn(b"Robbery", response.data)
 
     def test_web_admin_login_and_moderation(self):
         app = create_app(

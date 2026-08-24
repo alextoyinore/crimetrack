@@ -40,16 +40,51 @@ def create_app(database_path=DATABASE_PATH, admin_token=None):
     @app.get("/api/incidents")
     def list_incidents():
         connection = _connect(app.config["DATABASE_PATH"])
+        device_id = request.args.get("deviceId")
+        if device_id:
+            rows = connection.execute(
+                "SELECT * FROM incidents WHERE reporter_device_id = ? ORDER BY reported_at DESC",
+                (device_id,),
+            ).fetchall()
+        else:
+            rows = connection.execute(
+                "SELECT * FROM incidents ORDER BY reported_at DESC"
+            ).fetchall()
+        connection.close()
+        return jsonify([dict(row) for row in rows])
+
+    @app.get("/api/notifications")
+    def list_notifications():
+        device_id = request.args.get("deviceId")
+        if not _text(device_id):
+            return jsonify({"error": "deviceId is required"}), 400
+        connection = _connect(app.config["DATABASE_PATH"])
         rows = connection.execute(
             """
-            SELECT id, type, description, location, reported_at, status, risk,
-                   evidence_path, latitude, longitude
-            FROM incidents
-            ORDER BY reported_at DESC
-            """
+            SELECT id, title, message, incident_id, created_at, read
+            FROM notifications
+            WHERE device_id = ?
+            ORDER BY created_at DESC
+            LIMIT 50
+            """,
+            (device_id,),
         ).fetchall()
         connection.close()
         return jsonify([dict(row) for row in rows])
+
+    @app.post("/api/notifications/read")
+    def mark_notifications_read():
+        payload = request.get_json(silent=True)
+        if not isinstance(payload, dict) or not _text(payload.get("deviceId")):
+            return jsonify({"error": "deviceId is required"}), 400
+        connection = _connect(app.config["DATABASE_PATH"])
+        connection.execute(
+            "UPDATE notifications SET read = 1 WHERE device_id = ?",
+            (payload["deviceId"].strip(),),
+        )
+        connection.commit()
+        connection.close()
+        return jsonify({"status": "ok"})
 
     @app.post("/api/admin/login")
     def admin_login():
@@ -137,6 +172,37 @@ def create_app(database_path=DATABASE_PATH, admin_token=None):
             risks=sorted(ALLOWED_RISKS),
         )
 
+    @app.get("/admin/analytics")
+    def admin_analytics():
+        if not session.get("admin_authenticated"):
+            return redirect(url_for("admin_login_page"))
+        connection = _connect(app.config["DATABASE_PATH"])
+        status_rows = connection.execute(
+            "SELECT status AS label, COUNT(*) AS total FROM incidents GROUP BY status ORDER BY total DESC"
+        ).fetchall()
+        risk_rows = connection.execute(
+            "SELECT risk AS label, COUNT(*) AS total FROM incidents GROUP BY risk ORDER BY total DESC"
+        ).fetchall()
+        type_rows = connection.execute(
+            "SELECT type AS label, COUNT(*) AS total FROM incidents GROUP BY type ORDER BY total DESC"
+        ).fetchall()
+        trend_rows = connection.execute(
+            """
+            SELECT substr(reported_at, 1, 10) AS label, COUNT(*) AS total
+            FROM incidents
+            WHERE reported_at >= date('now', '-13 days')
+            GROUP BY label ORDER BY label
+            """
+        ).fetchall()
+        connection.close()
+        return render_template(
+            "admin_analytics.html",
+            status_breakdown=[dict(row) for row in status_rows],
+            risk_breakdown=[dict(row) for row in risk_rows],
+            type_breakdown=[dict(row) for row in type_rows],
+            daily_trend=[dict(row) for row in trend_rows],
+        )
+
     @app.post("/admin/incidents/<int:incident_id>/moderate")
     def admin_moderate_form(incident_id):
         if not session.get("admin_authenticated"):
@@ -146,10 +212,22 @@ def create_app(database_path=DATABASE_PATH, admin_token=None):
         if status not in ALLOWED_STATUSES or risk not in ALLOWED_RISKS:
             return redirect(url_for("admin_dashboard"))
         connection = _connect(app.config["DATABASE_PATH"])
+        previous = connection.execute(
+            "SELECT status, reporter_device_id FROM incidents WHERE id = ?",
+            (incident_id,),
+        ).fetchone()
         connection.execute(
             "UPDATE incidents SET status = ?, risk = ? WHERE id = ?",
             (status, risk, incident_id),
         )
+        if previous and previous["status"] != status:
+            _create_notification(
+                connection,
+                previous["reporter_device_id"],
+                "Report status updated",
+                f"Your report is now {status}.",
+                incident_id,
+            )
         connection.commit()
         connection.close()
         return redirect(url_for("admin_dashboard"))
@@ -191,8 +269,8 @@ def create_app(database_path=DATABASE_PATH, admin_token=None):
             """
             INSERT INTO incidents (
                 type, description, location, reported_at, status, risk,
-                evidence_path, latitude, longitude
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                evidence_path, latitude, longitude, reporter_device_id
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 incident_type,
@@ -204,7 +282,15 @@ def create_app(database_path=DATABASE_PATH, admin_token=None):
                 payload.get("evidencePath"),
                 latitude,
                 longitude,
+                payload.get("deviceId"),
             ),
+        )
+        _create_notification(
+            connection,
+            payload.get("deviceId"),
+            "Report submitted",
+            "Your report was submitted and is awaiting review.",
+            cursor.lastrowid,
         )
         connection.commit()
         incident = connection.execute(
@@ -242,6 +328,9 @@ def create_app(database_path=DATABASE_PATH, admin_token=None):
         values.append(incident_id)
 
         connection = _connect(app.config["DATABASE_PATH"])
+        previous = connection.execute(
+            "SELECT status FROM incidents WHERE id = ?", (incident_id,)
+        ).fetchone()
         cursor = connection.execute(
             f"UPDATE incidents SET {', '.join(updates)} WHERE id = ?", values
         )
@@ -252,6 +341,15 @@ def create_app(database_path=DATABASE_PATH, admin_token=None):
         incident = connection.execute(
             "SELECT * FROM incidents WHERE id = ?", (incident_id,)
         ).fetchone()
+        if status is not None and previous and previous["status"] != status:
+            _create_notification(
+                connection,
+                incident["reporter_device_id"],
+                "Report status updated",
+                f"Your report is now {status}.",
+                incident_id,
+            )
+            connection.commit()
         connection.close()
         return jsonify(dict(incident))
 
@@ -279,7 +377,26 @@ def _init_database(database_path):
             risk TEXT NOT NULL DEFAULT 'medium',
             evidence_path TEXT,
             latitude REAL,
-            longitude REAL
+            longitude REAL,
+            reporter_device_id TEXT
+        )
+        """
+    )
+    columns = {
+        row["name"] for row in connection.execute("PRAGMA table_info(incidents)")
+    }
+    if "reporter_device_id" not in columns:
+        connection.execute("ALTER TABLE incidents ADD COLUMN reporter_device_id TEXT")
+    connection.execute(
+        """
+        CREATE TABLE IF NOT EXISTS notifications (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            device_id TEXT NOT NULL,
+            title TEXT NOT NULL,
+            message TEXT NOT NULL,
+            incident_id INTEGER,
+            created_at TEXT NOT NULL,
+            read INTEGER NOT NULL DEFAULT 0
         )
         """
     )
@@ -299,6 +416,18 @@ def _coordinate(value, minimum, maximum):
     except (TypeError, ValueError):
         return None
     return number if minimum <= number <= maximum else None
+
+
+def _create_notification(connection, device_id, title, message, incident_id):
+    if not _text(device_id):
+        return
+    connection.execute(
+        """
+        INSERT INTO notifications (device_id, title, message, incident_id, created_at)
+        VALUES (?, ?, ?, ?, ?)
+        """,
+        (device_id.strip(), title, message, incident_id, datetime.now(timezone.utc).isoformat()),
+    )
 
 
 def _authorized_admin(request, admin_token):
