@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/page_title.dart';
@@ -20,7 +21,7 @@ class SafetyPage extends StatelessWidget {
           width: double.infinity,
           height: 76,
           child: FilledButton.icon(
-            onPressed: () {},
+            onPressed: () => _callEmergency(context),
             icon: const Icon(Icons.phone_in_talk_rounded),
             label: const Text(
               'EMERGENCY SERVICES  112',
@@ -59,6 +60,15 @@ class SafetyPage extends StatelessWidget {
       ],
     ),
   );
+
+  Future<void> _callEmergency(BuildContext context) async {
+    final uri = Uri(scheme: 'tel', path: '112');
+    if (await launchUrl(uri)) return;
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Unable to open the phone dialer')),
+    );
+  }
 }
 
 class ContactRow extends StatelessWidget {

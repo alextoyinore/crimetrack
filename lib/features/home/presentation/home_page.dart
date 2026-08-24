@@ -3,10 +3,12 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/map_preview.dart';
 import '../../../core/widgets/metric.dart';
+import '../../incidents/models/incident.dart';
 
 class HomePage extends StatelessWidget {
-  const HomePage({super.key, required this.onReport});
+  const HomePage({super.key, required this.onReport, required this.incidents});
   final VoidCallback onReport;
+  final List<Incident> incidents;
 
   @override
   Widget build(BuildContext context) => SingleChildScrollView(
@@ -132,7 +134,7 @@ class HomePage extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 12),
-        const MapPreview(),
+        MapPreview(incidents: incidents),
         const SizedBox(height: 24),
         const Text(
           'TODAY IN YOUR AREA',
@@ -143,13 +145,28 @@ class HomePage extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 12),
-        const Row(
+        Row(
           children: [
-            Metric(value: '24', label: 'Verified', color: AppTheme.danger),
-            SizedBox(width: 10),
-            Metric(value: '08', label: 'Pending', color: AppTheme.amber),
-            SizedBox(width: 10),
-            Metric(value: '03', label: 'Resolved', color: AppTheme.success),
+            Metric(
+              value:
+                  '${incidents.where((item) => item.status == IncidentStatus.verified).length}',
+              label: 'Verified',
+              color: AppTheme.danger,
+            ),
+            const SizedBox(width: 10),
+            Metric(
+              value:
+                  '${incidents.where((item) => item.status == IncidentStatus.pending).length}',
+              label: 'Pending',
+              color: AppTheme.amber,
+            ),
+            const SizedBox(width: 10),
+            Metric(
+              value:
+                  '${incidents.where((item) => item.status == IncidentStatus.resolved).length}',
+              label: 'Resolved',
+              color: AppTheme.success,
+            ),
           ],
         ),
       ],

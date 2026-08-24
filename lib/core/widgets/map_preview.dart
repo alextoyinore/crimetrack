@@ -1,9 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
 
 import '../theme/app_theme.dart';
+import '../../features/incidents/models/incident.dart';
 
 class MapPreview extends StatelessWidget {
-  const MapPreview({super.key});
+  const MapPreview({super.key, this.incidents = const []});
+
+  final List<Incident> incidents;
 
   @override
   Widget build(BuildContext context) => Container(
@@ -15,7 +20,42 @@ class MapPreview extends StatelessWidget {
     ),
     child: Stack(
       children: [
-        CustomPaint(size: Size.infinite, painter: MapPainter()),
+        FlutterMap(
+          options: const MapOptions(
+            initialCenter: LatLng(6.6018, 3.3515),
+            initialZoom: 11.5,
+            interactionOptions: InteractionOptions(
+              flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
+            ),
+          ),
+          children: [
+            TileLayer(
+              urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+              userAgentPackageName: 'com.crimetrack.app',
+            ),
+            MarkerLayer(
+              markers: [
+                for (final incident in incidents)
+                  if (incident.latitude != null && incident.longitude != null)
+                    Marker(
+                      point: LatLng(incident.latitude!, incident.longitude!),
+                      width: 30,
+                      height: 30,
+                      child: Icon(
+                        Icons.location_on,
+                        color: incident.riskColor,
+                        size: 30,
+                      ),
+                    ),
+              ],
+            ),
+            const RichAttributionWidget(
+              attributions: [
+                TextSourceAttribution('OpenStreetMap contributors'),
+              ],
+            ),
+          ],
+        ),
         Positioned(
           top: 13,
           left: 13,
@@ -51,70 +91,6 @@ class MapPreview extends StatelessWidget {
       ],
     ),
   );
-}
-
-class MapPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    canvas.drawRect(
-      Offset.zero & size,
-      Paint()..color = const Color(0xFF202B2D),
-    );
-    final line = Paint()
-      ..color = const Color(0xFF334342)
-      ..strokeWidth = 1.2;
-    for (var x = -size.height; x < size.width + size.height; x += 55) {
-      canvas.drawLine(Offset(x, 0), Offset(x + size.height, size.height), line);
-    }
-    for (var y = 25.0; y < size.height; y += 45) {
-      canvas.drawLine(Offset(0, y), Offset(size.width, y - 35), line);
-    }
-    canvas.drawOval(
-      Rect.fromLTWH(size.width * .55, -40, size.width * .7, 115),
-      Paint()..color = const Color(0xFF183236),
-    );
-    _pin(
-      canvas,
-      Offset(size.width * .31, size.height * .48),
-      AppTheme.danger,
-      10,
-    );
-    _pin(
-      canvas,
-      Offset(size.width * .64, size.height * .32),
-      AppTheme.amber,
-      8,
-    );
-    _pin(
-      canvas,
-      Offset(size.width * .72, size.height * .68),
-      AppTheme.amber,
-      7,
-    );
-    _pin(
-      canvas,
-      Offset(size.width * .47, size.height * .78),
-      AppTheme.danger,
-      8,
-    );
-  }
-
-  void _pin(Canvas canvas, Offset point, Color color, double radius) {
-    canvas.drawCircle(
-      point,
-      radius * 1.9,
-      Paint()..color = color.withAlpha(35),
-    );
-    canvas.drawCircle(point, radius, Paint()..color = color);
-    canvas.drawCircle(
-      point,
-      radius * .35,
-      Paint()..color = const Color(0xFF202B2D),
-    );
-  }
-
-  @override
-  bool shouldRepaint(CustomPainter oldDelegate) => false;
 }
 
 class MapLegend extends StatelessWidget {
