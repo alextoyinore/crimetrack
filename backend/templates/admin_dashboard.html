@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Dashboard | CrimeTrack</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='admin.css') }}">
+</head>
+<body>
+  <header class="topbar">
+    <a class="wordmark" href="{{ url_for('admin_dashboard') }}"><span>CT</span> CrimeTrack</a>
+    <div class="topbar-actions"><span class="location-label">Lagos Metro</span><form method="post" action="{{ url_for('admin_logout') }}"><button class="button button-quiet" type="submit">Sign out</button></form></div>
+  </header>
+  <main class="page-shell">
+    <section class="page-heading"><div><p class="eyebrow">Operations center</p><h1>Incident overview</h1><p class="muted">Monitor, validate, and classify community reports.</p></div><div class="live-status"><i></i> Live data</div></section>
+    <section class="metrics" aria-label="Report metrics">
+      <div class="metric"><span>Total reports</span><strong>{{ total }}</strong><small>All submitted reports</small></div>
+      <div class="metric metric-accent"><span>Pending review</span><strong>{{ pending }}</strong><small>Needs an operator decision</small></div>
+      <div class="metric"><span>Verified incidents</span><strong>{{ verified }}</strong><small>Approved for public view</small></div>
+      <div class="metric metric-danger"><span>High risk</span><strong>{{ high_risk }}</strong><small>Requires close attention</small></div>
+    </section>
+    <section class="content-panel">
+      <div class="panel-heading"><div><h2>Report queue</h2><p class="muted">Review the latest incident submissions.</p></div><form class="filters" method="get"><select name="status" aria-label="Filter by status"><option value="all">All statuses</option>{% for status in statuses %}<option value="{{ status }}" {% if status_filter == status %}selected{% endif %}>{{ status|capitalize }}</option>{% endfor %}</select><select name="risk" aria-label="Filter by risk"><option value="all">All risks</option>{% for risk in risks %}<option value="{{ risk }}" {% if risk_filter == risk %}selected{% endif %}>{{ risk|capitalize }}</option>{% endfor %}</select><button class="button button-secondary" type="submit">Filter</button></form></div>
+      {% if incidents %}
+      <div class="table-wrap"><table><thead><tr><th>Incident</th><th>Location</th><th>Reported</th><th>Status</th><th>Risk</th><th>Moderate</th></tr></thead><tbody>{% for incident in incidents %}<tr><td><strong>{{ incident.type }}</strong><small>{{ incident.description }}</small></td><td>{{ incident.location }}</td><td>{{ incident.reported_at[:16].replace('T', ' ') }}</td><td><span class="status status-{{ incident.status }}">{{ incident.status }}</span></td><td><span class="risk risk-{{ incident.risk }}"><i></i>{{ incident.risk }}</span></td><td><form class="moderate-form" method="post" action="{{ url_for('admin_moderate_form', incident_id=incident.id) }}"><select name="status" aria-label="Status for {{ incident.type }}"><option value="pending" {% if incident.status == 'pending' %}selected{% endif %}>Pending</option><option value="verified" {% if incident.status == 'verified' %}selected{% endif %}>Verified</option><option value="flagged" {% if incident.status == 'flagged' %}selected{% endif %}>Flagged</option><option value="rejected" {% if incident.status == 'rejected' %}selected{% endif %}>Rejected</option><option value="resolved" {% if incident.status == 'resolved' %}selected{% endif %}>Resolved</option></select><select name="risk" aria-label="Risk for {{ incident.type }}"><option value="low" {% if incident.risk == 'low' %}selected{% endif %}>Low</option><option value="medium" {% if incident.risk == 'medium' %}selected{% endif %}>Medium</option><option value="high" {% if incident.risk == 'high' %}selected{% endif %}>High</option></select><button class="icon-button" title="Save moderation" aria-label="Save moderation" type="submit">↗</button></form></td></tr>{% endfor %}</tbody></table></div>
+      {% else %}<div class="empty-state"><strong>No reports match these filters</strong><span>Try a different status or risk level.</span></div>{% endif %}
+    </section>
+  </main>
+</body>
+</html>

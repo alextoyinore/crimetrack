@@ -33,7 +33,9 @@ migrate_working_dir/
 /build/
 /coverage/
 backend/*.db
-backend/.*
+backend/.env
+backend/.env.*
+!backend/.env.example
 
 # Symbolication related
 app.*.symbols

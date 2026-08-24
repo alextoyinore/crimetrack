@@ -20,6 +20,10 @@ Location Reporting System.
 The Flutter prototype currently includes:
 
 - **Overview:** community status, incident metrics, and a map preview.
+- **First-launch onboarding:** three short introduction screens with skip and
+  continue controls, shown once per device.
+- **Branded splash screen:** animated CrimeTrack startup screen using the same
+  radar logo shown on the Overview page.
 - **Report an incident:** incident type, description, location, and optional
   image or video evidence selected from the device gallery, plus current GPS
   coordinates when location permission is granted.
@@ -88,6 +92,11 @@ The initial Flask API is now included in `backend/`. It provides a health
 check, report creation, report listing, SQLite storage, request validation, and
 protected admin moderation for report status and risk level.
 
+The Flask service also includes a browser-based admin dashboard at
+`http://127.0.0.1:5000/admin`. It provides a session-protected sign-in page,
+flat KPI cards, report filters, and moderation forms backed by the same SQLite
+database.
+
 ### Map usage
 
 The prototype uses the public OpenStreetMap tile endpoint, which is suitable
@@ -143,6 +152,9 @@ The API runs at `http://127.0.0.1:5000` by default. Available endpoints are
 `PATCH /api/admin/incidents/<id>` with `Authorization: Bearer <token>` to set
 `pending`, `verified`, `resolved`, `rejected`, or `flagged` status and the
 `high`, `medium`, or `low` risk level.
+
+The web dashboard uses `GET /admin/login`, `POST /admin/login`, `GET /admin`,
+`POST /admin/incidents/<id>/moderate`, and `POST /admin/logout`.
 
 Configure the development admin token before starting Flask:
 

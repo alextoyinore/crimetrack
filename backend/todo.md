@@ -1,0 +1,5 @@
+set CRIMETRACK_ADMIN_TOKEN=your-token
+set CRIMETRACK_ADMIN_USERNAME=admin
+set CRIMETRACK_ADMIN_PASSWORD=your-password
+set CRIMETRACK_SESSION_SECRET=your-session-secret
+python backend/app.py

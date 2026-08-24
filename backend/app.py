@@ -4,10 +4,12 @@ import sqlite3
 from datetime import datetime, timezone
 from pathlib import Path
 
-from flask import Flask, jsonify, request
+from dotenv import load_dotenv
+from flask import Flask, jsonify, redirect, render_template, request, session, url_for
 
 
 BASE_DIR = Path(__file__).resolve().parent
+load_dotenv(BASE_DIR / ".env")
 DATABASE_PATH = Path(os.environ.get("CRIMETRACK_DATABASE", BASE_DIR / "crimetrack.db"))
 ALLOWED_TYPES = {"Theft", "Robbery", "Kidnapping", "Suspicious activity", "Other"}
 ALLOWED_RISKS = {"high", "medium", "low"}
@@ -22,6 +24,11 @@ def create_app(database_path=DATABASE_PATH, admin_token=None):
     )
     app.config["ADMIN_USERNAME"] = os.environ.get("CRIMETRACK_ADMIN_USERNAME")
     app.config["ADMIN_PASSWORD"] = os.environ.get("CRIMETRACK_ADMIN_PASSWORD")
+    app.config["SECRET_KEY"] = os.environ.get(
+        "CRIMETRACK_SESSION_SECRET", "dev-only-change-this-secret"
+    )
+    app.config["SESSION_COOKIE_HTTPONLY"] = True
+    app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
 
     with app.app_context():
         _init_database(app.config["DATABASE_PATH"])
@@ -66,6 +73,86 @@ def create_app(database_path=DATABASE_PATH, admin_token=None):
         if not hmac.compare_digest(password, app.config["ADMIN_PASSWORD"]):
             return jsonify({"error": "Invalid admin credentials"}), 401
         return jsonify({"token": app.config["ADMIN_TOKEN"]})
+
+    @app.get("/admin/login")
+    def admin_login_page():
+        if session.get("admin_authenticated"):
+            return redirect(url_for("admin_dashboard"))
+        return render_template("admin_login.html", error=None)
+
+    @app.post("/admin/login")
+    def admin_login_submit():
+        username = request.form.get("username", "")
+        password = request.form.get("password", "")
+        configured = all(
+            (
+                app.config["ADMIN_TOKEN"],
+                app.config["ADMIN_USERNAME"],
+                app.config["ADMIN_PASSWORD"],
+            )
+        )
+        valid = configured and hmac.compare_digest(
+            username, app.config["ADMIN_USERNAME"]
+        ) and hmac.compare_digest(password, app.config["ADMIN_PASSWORD"])
+        if not valid:
+            error = "Admin access is not configured" if not configured else "Invalid credentials"
+            return render_template("admin_login.html", error=error), 503 if not configured else 401
+        session.clear()
+        session["admin_authenticated"] = True
+        return redirect(url_for("admin_dashboard"))
+
+    @app.post("/admin/logout")
+    def admin_logout():
+        session.clear()
+        return redirect(url_for("admin_login_page"))
+
+    @app.get("/admin")
+    def admin_dashboard():
+        if not session.get("admin_authenticated"):
+            return redirect(url_for("admin_login_page"))
+        status_filter = request.args.get("status", "all")
+        risk_filter = request.args.get("risk", "all")
+        connection = _connect(app.config["DATABASE_PATH"])
+        rows = connection.execute(
+            "SELECT * FROM incidents ORDER BY reported_at DESC"
+        ).fetchall()
+        connection.close()
+        incidents = [dict(row) for row in rows]
+        filtered = [
+            incident
+            for incident in incidents
+            if (status_filter == "all" or incident["status"] == status_filter)
+            and (risk_filter == "all" or incident["risk"] == risk_filter)
+        ]
+        return render_template(
+            "admin_dashboard.html",
+            incidents=filtered,
+            total=len(incidents),
+            pending=sum(i["status"] == "pending" for i in incidents),
+            verified=sum(i["status"] == "verified" for i in incidents),
+            high_risk=sum(i["risk"] == "high" for i in incidents),
+            status_filter=status_filter,
+            risk_filter=risk_filter,
+            statuses=sorted(ALLOWED_STATUSES),
+            risks=sorted(ALLOWED_RISKS),
+        )
+
+    @app.post("/admin/incidents/<int:incident_id>/moderate")
+    def admin_moderate_form(incident_id):
+        if not session.get("admin_authenticated"):
+            return redirect(url_for("admin_login_page"))
+        status = request.form.get("status", "pending")
+        risk = request.form.get("risk", "medium")
+        if status not in ALLOWED_STATUSES or risk not in ALLOWED_RISKS:
+            return redirect(url_for("admin_dashboard"))
+        connection = _connect(app.config["DATABASE_PATH"])
+        connection.execute(
+            "UPDATE incidents SET status = ?, risk = ? WHERE id = ?",
+            (status, risk, incident_id),
+        )
+        connection.commit()
+        connection.close()
+        return redirect(url_for("admin_dashboard"))
 
     @app.post("/api/incidents")
     def create_incident():

@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Admin sign in | CrimeTrack</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='admin.css') }}">
+</head>
+<body class="auth-page">
+  <main class="auth-panel">
+    <div class="brand-mark">CT</div>
+    <p class="eyebrow">CrimeTrack · Lagos Metro</p>
+    <h1>Admin sign in</h1>
+    <p class="muted">Review reports, assign risk, and keep incident data reliable.</p>
+    {% if error %}<div class="alert">{{ error }}</div>{% endif %}
+    <form method="post" class="stack-form">
+      <label>Username<input name="username" autocomplete="username" required></label>
+      <label>Password<input name="password" type="password" autocomplete="current-password" required></label>
+      <button class="button button-primary" type="submit">Sign in</button>
+    </form>
+    <p class="fine-print">Authorized CrimeTrack operators only.</p>
+  </main>
+</body>
+</html>

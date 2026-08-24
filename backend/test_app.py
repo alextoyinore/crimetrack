@@ -9,7 +9,10 @@ class IncidentApiTest(unittest.TestCase):
     def setUp(self):
         self.temp_directory = tempfile.TemporaryDirectory()
         database_path = Path(self.temp_directory.name) / "test.db"
-        self.client = create_app(database_path, admin_token="test-token").test_client()
+        app = create_app(database_path, admin_token="test-token")
+        app.config["ADMIN_USERNAME"] = None
+        app.config["ADMIN_PASSWORD"] = None
+        self.client = app.test_client()
 
     def tearDown(self):
         self.temp_directory.cleanup()
@@ -101,6 +104,45 @@ class IncidentApiTest(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json["status"], "verified")
         self.assertEqual(response.json["risk"], "high")
+
+    def test_web_admin_requires_login(self):
+        response = self.client.get("/admin")
+        self.assertEqual(response.status_code, 302)
+        self.assertIn("/admin/login", response.location)
+
+    def test_web_admin_login_and_moderation(self):
+        app = create_app(
+            Path(self.temp_directory.name) / "web.db", admin_token="test-token"
+        )
+        app.config["ADMIN_USERNAME"] = "admin"
+        app.config["ADMIN_PASSWORD"] = "secret"
+        client = app.test_client()
+        client.post(
+            "/api/incidents",
+            json={
+                "type": "Theft",
+                "description": "Web review report.",
+                "location": "Ikeja, Lagos",
+            },
+        )
+
+        response = client.post(
+            "/admin/login",
+            data={"username": "admin", "password": "secret"},
+            follow_redirects=True,
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(b"Incident overview", response.data)
+        self.assertIn(b"Web review report.", response.data)
+
+        response = client.post(
+            "/admin/incidents/1/moderate",
+            data={"status": "verified", "risk": "high"},
+        )
+        self.assertEqual(response.status_code, 302)
+        incident = client.get("/api/incidents").json[0]
+        self.assertEqual(incident["status"], "verified")
+        self.assertEqual(incident["risk"], "high")
 
 
 if __name__ == "__main__":

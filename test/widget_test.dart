@@ -24,6 +24,8 @@ void main() {
 
   testWidgets('renders the CrimeTrack overview', (WidgetTester tester) async {
     await tester.pumpWidget(const CrimeTrackApp());
+    await tester.pump(const Duration(milliseconds: 1600));
+    await tester.pumpAndSettle();
     expect(find.text('CRIMETRACK'), findsOneWidget);
     expect(find.text('REPORT AN INCIDENT'), findsOneWidget);
   });
@@ -32,6 +34,8 @@ void main() {
     WidgetTester tester,
   ) async {
     await tester.pumpWidget(const CrimeTrackApp());
+    await tester.pump(const Duration(milliseconds: 1600));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('REPORT AN INCIDENT'));
     await tester.pumpAndSettle();
 
@@ -49,6 +53,8 @@ void main() {
 
   testWidgets('filters incidents by type', (WidgetTester tester) async {
     await tester.pumpWidget(const CrimeTrackApp());
+    await tester.pump(const Duration(milliseconds: 1600));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Incidents'));
     await tester.pumpAndSettle();
 
@@ -63,6 +69,8 @@ void main() {
 
   testWidgets('admin dashboard requires sign in', (WidgetTester tester) async {
     await tester.pumpWidget(const CrimeTrackApp());
+    await tester.pump(const Duration(milliseconds: 1600));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Admin'));
     await tester.pumpAndSettle();
 
@@ -73,6 +81,7 @@ void main() {
   testWidgets('shows onboarding on first launch', (WidgetTester tester) async {
     SharedPreferences.setMockInitialValues({});
     await tester.pumpWidget(const CrimeTrackApp());
+    await tester.pump(const Duration(milliseconds: 1600));
     await tester.pumpAndSettle();
 
     expect(find.text('Know what is happening nearby'), findsOneWidget);
