@@ -7,6 +7,8 @@
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:crimetrack/app.dart';
@@ -14,6 +16,12 @@ import 'package:crimetrack/features/incidents/data/incident_repository.dart';
 import 'package:crimetrack/features/incidents/models/incident.dart';
 
 void main() {
+  setUp(() {
+    SharedPreferences.setMockInitialValues({
+      'crimetrack.onboarding_complete': true,
+    });
+  });
+
   testWidgets('renders the CrimeTrack overview', (WidgetTester tester) async {
     await tester.pumpWidget(const CrimeTrackApp());
     expect(find.text('CRIMETRACK'), findsOneWidget);
@@ -53,6 +61,27 @@ void main() {
     expect(find.text('Theft'), findsNothing);
   });
 
+  testWidgets('admin dashboard requires sign in', (WidgetTester tester) async {
+    await tester.pumpWidget(const CrimeTrackApp());
+    await tester.tap(find.text('Admin'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('SIGN IN TO ADMIN'), findsOneWidget);
+    expect(find.text('Admin dashboard'), findsNothing);
+  });
+
+  testWidgets('shows onboarding on first launch', (WidgetTester tester) async {
+    SharedPreferences.setMockInitialValues({});
+    await tester.pumpWidget(const CrimeTrackApp());
+    await tester.pumpAndSettle();
+
+    expect(find.text('Know what is happening nearby'), findsOneWidget);
+    expect(find.text('Continue'), findsOneWidget);
+    await tester.tap(find.text('Skip'));
+    await tester.pumpAndSettle();
+    expect(find.text('REPORT AN INCIDENT'), findsOneWidget);
+  });
+
   test('persists and restores incident details', () async {
     SharedPreferences.setMockInitialValues({});
     final repository = IncidentRepository();
@@ -77,5 +106,75 @@ void main() {
     expect(restored.single.latitude, incident.latitude);
     expect(restored.single.longitude, incident.longitude);
     expect(restored.single.evidencePath, incident.evidencePath);
+  });
+
+  test('uses the Flask API for incident submission and loading', () async {
+    SharedPreferences.setMockInitialValues({});
+    final client = MockClient((request) async {
+      if (request.method == 'POST') {
+        expect(request.url.path, '/api/incidents');
+        expect(request.body, contains('Ikeja, Lagos'));
+        return http.Response('{"id": 1}', 201);
+      }
+      return http.Response(
+        '[{"type":"Robbery","description":"API report",'
+        '"location":"Yaba, Lagos","reported_at":"2026-08-24T12:00:00Z",'
+        '"status":"pending","risk":"high","latitude":6.52,'
+        '"longitude":3.38,"evidence_path":null}]',
+        200,
+      );
+    });
+    final repository = IncidentRepository(
+      baseUrl: 'http://test-server',
+      client: client,
+    );
+    final incident = Incident(
+      type: 'Theft',
+      description: 'API submission',
+      location: 'Ikeja, Lagos',
+      reportedAt: DateTime(2026, 8, 24),
+      status: IncidentStatus.pending,
+      risk: IncidentRisk.medium,
+    );
+
+    expect(await repository.submitIncident(incident), isTrue);
+    final loaded = await repository.loadUserIncidents();
+
+    expect(loaded.single.type, 'Robbery');
+    expect(loaded.single.latitude, 6.52);
+    expect(loaded.single.longitude, 3.38);
+  });
+
+  test('sends authenticated moderation updates', () async {
+    final client = MockClient((request) async {
+      expect(request.method, 'PATCH');
+      expect(request.url.path, '/api/admin/incidents/7');
+      expect(request.headers['authorization'], 'Bearer test-token');
+      expect(request.body, contains('verified'));
+      return http.Response('{"status":"verified"}', 200);
+    });
+    final repository = IncidentRepository(
+      baseUrl: 'http://test-server',
+      client: client,
+      adminToken: 'test-token',
+    );
+    final incident = Incident(
+      id: 7,
+      type: 'Theft',
+      description: 'Review me.',
+      location: 'Ikeja, Lagos',
+      reportedAt: DateTime.now(),
+      status: IncidentStatus.pending,
+      risk: IncidentRisk.medium,
+    );
+
+    expect(
+      await repository.moderateIncident(
+        incident,
+        status: IncidentStatus.verified,
+        risk: IncidentRisk.high,
+      ),
+      isTrue,
+    );
   });
 }

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'core/theme/app_theme.dart';
-import 'features/shell/presentation/shell.dart';
+import 'features/onboarding/presentation/onboarding_page.dart';
 
 class CrimeTrackApp extends StatelessWidget {
   const CrimeTrackApp({super.key});
@@ -11,6 +11,6 @@ class CrimeTrackApp extends StatelessWidget {
     title: 'CrimeTrack',
     debugShowCheckedModeBanner: false,
     theme: AppTheme.dark,
-    home: const Shell(),
+    home: const OnboardingGate(),
   );
 }

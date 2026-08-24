@@ -30,12 +30,18 @@ The Flutter prototype currently includes:
   resolution states.
 - **Safety hub:** emergency services dialing through `112` and emergency
   contact entries.
+- **Admin dashboard:** report totals, pending review cards, risk assignment,
+  and approve, flag, or reject actions for local prototype data.
 
 The displayed data includes local prototype data, and newly submitted reports
-are persisted locally on the device. Backend persistence, authentication,
-remote media uploads, notifications, and
-admin validation are planned integration work. Map rendering now uses
+are persisted locally on the device. Production authentication, remote media
+uploads, notifications, and admin validation are planned integration work.
+Map rendering now uses
 `flutter_map` with OpenStreetMap tiles and requires no API key for development.
+
+The Flutter repository now connects to the Flask API when it is available.
+Reports are submitted online and loaded from the API first, with the local
+device cache used as an offline fallback.
 
 ## Planned Scope
 
@@ -74,9 +80,13 @@ User/Admin interface -> Flask REST API -> Database -> Dashboard and map output
 - **Integrations:** `flutter_map` with OpenStreetMap tiles, geolocation
   services, REST, and AJAX or equivalent real-time updates.
 
-The current repository contains the Flutter presentation layer. The Flask API
-and admin dashboard will be added as separate integration work rather than
-being represented as completed features.
+The current repository contains the Flutter client and the initial Flask API.
+Authentication, media uploads, notifications, and the admin dashboard remain
+separate integration work.
+
+The initial Flask API is now included in `backend/`. It provides a health
+check, report creation, report listing, SQLite storage, request validation, and
+protected admin moderation for report status and risk level.
 
 ### Map usage
 
@@ -98,6 +108,10 @@ lib/
   features/reports/                User report history
   features/safety/                 Emergency contacts and safety actions
   features/shell/                  Navigation shell
+backend/
+  app.py                           Flask API and SQLite setup
+  requirements.txt                 Python dependencies
+  test_app.py                      API tests
 test/                              Flutter widget tests
 ```
 
@@ -116,6 +130,45 @@ flutter pub get
 flutter run
 ```
 
+In a second terminal, run the API:
+
+```bash
+python -m pip install -r backend/requirements.txt
+python backend/app.py
+```
+
+The API runs at `http://127.0.0.1:5000` by default. Available endpoints are
+`GET /health`, `GET /api/incidents`, `POST /api/incidents`, and
+`POST /api/admin/login`. Admins can use
+`PATCH /api/admin/incidents/<id>` with `Authorization: Bearer <token>` to set
+`pending`, `verified`, `resolved`, `rejected`, or `flagged` status and the
+`high`, `medium`, or `low` risk level.
+
+Configure the development admin token before starting Flask:
+
+```bash
+set CRIMETRACK_ADMIN_TOKEN=replace-with-a-local-secret
+set CRIMETRACK_ADMIN_USERNAME=admin
+set CRIMETRACK_ADMIN_PASSWORD=replace-with-a-local-password
+python backend/app.py
+```
+
+Use a proper secret manager and identity provider before production.
+
+For an Android emulator, use `http://10.0.2.2:5000` to reach the development
+machine. Physical devices need the host computer's local network IP and a
+Flask server bound to the appropriate interface.
+
+The Flutter Admin tab requires the configured username and password. To enable
+remote moderation actions after sign-in, provide the same token at build time:
+
+```bash
+flutter run --dart-define=CRIMETRACK_ADMIN_TOKEN=replace-with-a-local-secret
+```
+
+Without this define, admin actions still update the local prototype state but
+are not sent to the protected API.
+
 ### Validate the project
 
 ```bash
@@ -123,12 +176,18 @@ flutter analyze
 flutter test
 ```
 
+Run backend tests with:
+
+```bash
+python -m unittest discover -s backend -p "test_*.py" -v
+```
+
 ## Delivery Roadmap
 
 1. **Requirements and design:** finalize report fields, user roles, risk
    levels, privacy rules, and map behavior.
-2. **Core development:** connect the Flutter screens to the Flask REST API,
-   add authentication, remote persistence, geolocation, and media handling.
+2. **Core development:** add authentication, remote media uploads, and
+  production persistence around the connected Flask REST API.
 3. **Admin operations:** build report validation, user management, map
    analytics, exports, and audit logs.
 4. **Testing and deployment:** validate reporting workflows, permissions,

@@ -125,6 +125,8 @@ class _Filters extends StatelessWidget {
                 'Under review',
                 'Verified',
                 'Resolved',
+                'Rejected',
+                'Flagged',
               ],
               onChanged: onStatusChanged,
             ),

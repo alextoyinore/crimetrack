@@ -2,12 +2,13 @@ import 'package:flutter/material.dart';
 
 import '../../../core/theme/app_theme.dart';
 
-enum IncidentStatus { pending, verified, resolved }
+enum IncidentStatus { pending, verified, resolved, rejected, flagged }
 
 enum IncidentRisk { high, medium, low }
 
 class Incident {
   const Incident({
+    this.id,
     required this.type,
     required this.description,
     required this.location,
@@ -19,6 +20,7 @@ class Incident {
     this.longitude,
   });
 
+  final int? id;
   final String type;
   final String description;
   final String location;
@@ -29,7 +31,21 @@ class Incident {
   final double? latitude;
   final double? longitude;
 
+  Incident copyWith({IncidentStatus? status, IncidentRisk? risk}) => Incident(
+    id: id,
+    type: type,
+    description: description,
+    location: location,
+    reportedAt: reportedAt,
+    status: status ?? this.status,
+    risk: risk ?? this.risk,
+    evidencePath: evidencePath,
+    latitude: latitude,
+    longitude: longitude,
+  );
+
   Map<String, Object?> toJson() => {
+    if (id != null) 'id': id,
     'type': type,
     'description': description,
     'location': location,
@@ -42,11 +58,14 @@ class Incident {
   };
 
   factory Incident.fromJson(Map<String, dynamic> json) => Incident(
+    id: (json['id'] as num?)?.toInt(),
     type: json['type'] as String? ?? 'Other',
     description: json['description'] as String? ?? '',
     location: json['location'] as String? ?? 'Unknown location',
     reportedAt:
-        DateTime.tryParse(json['reportedAt'] as String? ?? '') ??
+        DateTime.tryParse(
+          (json['reportedAt'] ?? json['reported_at']) as String? ?? '',
+        ) ??
         DateTime.now(),
     status: IncidentStatus.values.byName(
       json['status'] as String? ?? IncidentStatus.pending.name,
@@ -54,7 +73,7 @@ class Incident {
     risk: IncidentRisk.values.byName(
       json['risk'] as String? ?? IncidentRisk.medium.name,
     ),
-    evidencePath: json['evidencePath'] as String?,
+    evidencePath: (json['evidencePath'] ?? json['evidence_path']) as String?,
     latitude: (json['latitude'] as num?)?.toDouble(),
     longitude: (json['longitude'] as num?)?.toDouble(),
   );
@@ -63,6 +82,8 @@ class Incident {
     IncidentStatus.pending => 'Under review',
     IncidentStatus.verified => 'Verified',
     IncidentStatus.resolved => 'Resolved',
+    IncidentStatus.rejected => 'Rejected',
+    IncidentStatus.flagged => 'Flagged',
   };
 
   String get riskLabel => switch (risk) {
