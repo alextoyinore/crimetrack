@@ -16,30 +16,32 @@ abstract final class AppTheme {
   static final dark = ThemeData(
     brightness: Brightness.dark,
     scaffoldBackgroundColor: background,
-    colorScheme: ColorScheme.fromSeed(
-      seedColor: amber,
-      brightness: Brightness.dark,
-    ).copyWith(
-      primary: darkPrimary,
-      onPrimary: Colors.black,
-      surface: surface,
-      surfaceContainerHighest: const Color(0xFF202020),
-    ),
+    colorScheme:
+        ColorScheme.fromSeed(
+          seedColor: amber,
+          brightness: Brightness.dark,
+        ).copyWith(
+          primary: darkPrimary,
+          onPrimary: Colors.black,
+          surface: surface,
+          surfaceContainerHighest: const Color(0xFF202020),
+        ),
     fontFamily: 'Arial',
   );
 
   static final light = ThemeData(
     brightness: Brightness.light,
     scaffoldBackgroundColor: lightBackground,
-    colorScheme: ColorScheme.fromSeed(
-      seedColor: const Color(0xFF176B68),
-      brightness: Brightness.light,
-    ).copyWith(
-      primary: lightPrimary,
-      onPrimary: Colors.white,
-      surface: lightSurface,
-      surfaceContainerHighest: const Color(0xFFE9EEEE),
-    ),
+    colorScheme:
+        ColorScheme.fromSeed(
+          seedColor: const Color(0xFF176B68),
+          brightness: Brightness.light,
+        ).copyWith(
+          primary: lightPrimary,
+          onPrimary: Colors.white,
+          surface: lightSurface,
+          surfaceContainerHighest: const Color(0xFFE9EEEE),
+        ),
     fontFamily: 'Arial',
   );
 }

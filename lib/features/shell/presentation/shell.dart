@@ -184,8 +184,8 @@ class _ShellState extends State<Shell> {
     bottomNavigationBar: NavigationBar(
       selectedIndex: _tab,
       onDestinationSelected: (value) => setState(() => _tab = value),
-      backgroundColor: Theme.of(context).colorScheme.surface,
-      indicatorColor: Theme.of(context).colorScheme.secondaryContainer,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      indicatorColor: Theme.of(context).colorScheme.surfaceContainerHighest,
       destinations: const [
         NavigationDestination(
           icon: Icon(Icons.grid_view_rounded),
