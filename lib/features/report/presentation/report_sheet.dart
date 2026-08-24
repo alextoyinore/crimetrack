@@ -109,11 +109,45 @@ class _ReportSheetState extends State<ReportSheet> {
   InputDecoration _input(String hint) => InputDecoration(
     hintText: hint,
     filled: true,
-    fillColor: Theme.of(context).colorScheme.surface,
+    fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
     hintStyle: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
+    labelStyle: TextStyle(
+      color: Theme.of(context).colorScheme.onSurfaceVariant,
+    ),
     border: OutlineInputBorder(
       borderRadius: BorderRadius.circular(9),
-      borderSide: BorderSide.none,
+      borderSide: BorderSide(
+        color: Theme.of(context).colorScheme.outline.withAlpha(50),
+        width: 0,
+      ),
+    ),
+    enabledBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(9),
+      borderSide: BorderSide(
+        color: Theme.of(context).colorScheme.outline.withAlpha(50),
+        width: 0,
+      ),
+    ),
+    focusedBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(9),
+      borderSide: BorderSide(
+        color: Theme.of(context).colorScheme.primary.withAlpha(50),
+        width: 0,
+      ),
+    ),
+    errorBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(9),
+      borderSide: BorderSide(
+        color: Theme.of(context).colorScheme.error.withAlpha(50),
+        width: 0,
+      ),
+    ),
+    focusedErrorBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(9),
+      borderSide: BorderSide(
+        color: Theme.of(context).colorScheme.error.withAlpha(50),
+        width: 0,
+      ),
     ),
   );
 
@@ -219,14 +253,25 @@ class _ReportSheetState extends State<ReportSheet> {
             const SizedBox(height: 18),
             OutlinedButton.icon(
               onPressed: _chooseEvidence,
-              icon: const Icon(Icons.add_photo_alternate_outlined),
+              icon: Icon(
+                Icons.add_photo_alternate_outlined,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
               label: Text(
                 _evidencePath == null ? 'Attach evidence' : 'Evidence added',
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
               ),
               style: OutlinedButton.styleFrom(
                 foregroundColor: const Color(0xFFD5DBDD),
-                side: const BorderSide(color: Color(0xFF475158)),
+                side: BorderSide(
+                  color: Theme.of(context).colorScheme.outline.withAlpha(50),
+                ),
                 minimumSize: const Size(double.infinity, 50),
+                backgroundColor: Theme.of(
+                  context,
+                ).colorScheme.surfaceContainerHighest,
               ),
             ),
             const SizedBox(height: 16),
