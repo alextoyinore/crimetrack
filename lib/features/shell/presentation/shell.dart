@@ -9,7 +9,6 @@ import '../../incidents/data/incident_repository.dart';
 import '../../reports/presentation/reports_page.dart';
 import '../../safety/presentation/safety_page.dart';
 import '../../report/presentation/report_sheet.dart';
-import '../../admin/presentation/admin_page.dart';
 
 class Shell extends StatefulWidget {
   const Shell({super.key});
@@ -80,40 +79,6 @@ class _ShellState extends State<Shell> {
     unawaited(_repository.submitIncident(incident));
   }
 
-  void _updateIncident(
-    Incident incident,
-    IncidentStatus status,
-    IncidentRisk risk,
-  ) {
-    final index = _incidents.indexOf(incident);
-    if (index < 0) return;
-    final updated = incident.copyWith(status: status, risk: risk);
-    setState(() => _incidents[index] = updated);
-    final userIndex = _userIncidents.indexOf(incident);
-    if (userIndex >= 0) {
-      _userIncidents[userIndex] = updated;
-      _repository.saveUserIncidents(_userIncidents);
-    }
-    unawaited(_syncModeration(updated, status, risk));
-  }
-
-  Future<void> _syncModeration(
-    Incident incident,
-    IncidentStatus status,
-    IncidentRisk risk,
-  ) async {
-    final synced = await _repository.moderateIncident(
-      incident,
-      status: status,
-      risk: risk,
-    );
-    if (!synced && mounted && incident.id != null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Saved locally; server sync failed')),
-      );
-    }
-  }
-
   void _showReport() => showModalBottomSheet(
     context: context,
     isScrollControlled: true,
@@ -131,11 +96,6 @@ class _ShellState extends State<Shell> {
           IncidentsPage(incidents: _incidents),
           ReportsPage(incidents: _incidents),
           const SafetyPage(),
-          AdminGate(
-            incidents: _incidents,
-            onUpdate: _updateIncident,
-            onLogin: _loginAdmin,
-          ),
         ],
       ),
     ),
@@ -161,14 +121,7 @@ class _ShellState extends State<Shell> {
           icon: Icon(Icons.shield_outlined),
           label: 'Safety',
         ),
-        NavigationDestination(
-          icon: Icon(Icons.admin_panel_settings_outlined),
-          label: 'Admin',
-        ),
       ],
     ),
   );
-
-  Future<bool> _loginAdmin(String username, String password) =>
-      _repository.loginAdmin(username, password);
 }

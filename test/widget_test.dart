@@ -67,17 +67,6 @@ void main() {
     expect(find.text('Theft'), findsNothing);
   });
 
-  testWidgets('admin dashboard requires sign in', (WidgetTester tester) async {
-    await tester.pumpWidget(const CrimeTrackApp());
-    await tester.pump(const Duration(milliseconds: 1600));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Admin'));
-    await tester.pumpAndSettle();
-
-    expect(find.text('SIGN IN TO ADMIN'), findsOneWidget);
-    expect(find.text('Admin dashboard'), findsNothing);
-  });
-
   testWidgets('shows onboarding on first launch', (WidgetTester tester) async {
     SharedPreferences.setMockInitialValues({});
     await tester.pumpWidget(const CrimeTrackApp());
@@ -152,38 +141,5 @@ void main() {
     expect(loaded.single.type, 'Robbery');
     expect(loaded.single.latitude, 6.52);
     expect(loaded.single.longitude, 3.38);
-  });
-
-  test('sends authenticated moderation updates', () async {
-    final client = MockClient((request) async {
-      expect(request.method, 'PATCH');
-      expect(request.url.path, '/api/admin/incidents/7');
-      expect(request.headers['authorization'], 'Bearer test-token');
-      expect(request.body, contains('verified'));
-      return http.Response('{"status":"verified"}', 200);
-    });
-    final repository = IncidentRepository(
-      baseUrl: 'http://test-server',
-      client: client,
-      adminToken: 'test-token',
-    );
-    final incident = Incident(
-      id: 7,
-      type: 'Theft',
-      description: 'Review me.',
-      location: 'Ikeja, Lagos',
-      reportedAt: DateTime.now(),
-      status: IncidentStatus.pending,
-      risk: IncidentRisk.medium,
-    );
-
-    expect(
-      await repository.moderateIncident(
-        incident,
-        status: IncidentStatus.verified,
-        risk: IncidentRisk.high,
-      ),
-      isTrue,
-    );
   });
 }

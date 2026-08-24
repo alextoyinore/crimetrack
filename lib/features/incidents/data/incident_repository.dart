@@ -9,11 +9,9 @@ import '../models/incident.dart';
 class IncidentRepository {
   static const _storageKey = 'crimetrack.user_incidents';
 
-  IncidentRepository({String? baseUrl, http.Client? client, String? adminToken})
+  IncidentRepository({String? baseUrl, http.Client? client})
     : baseUrl = baseUrl ?? _defaultBaseUrl,
-      _client = client ?? http.Client(),
-      adminToken =
-          adminToken ?? const String.fromEnvironment('CRIMETRACK_ADMIN_TOKEN');
+      _client = client ?? http.Client();
 
   static String get _defaultBaseUrl {
     if (kIsWeb) return 'http://127.0.0.1:5000';
@@ -24,27 +22,6 @@ class IncidentRepository {
 
   final String baseUrl;
   final http.Client _client;
-  String adminToken;
-
-  Future<bool> loginAdmin(String username, String password) async {
-    try {
-      final response = await _client
-          .post(
-            Uri.parse('$baseUrl/api/admin/login'),
-            headers: {'Content-Type': 'application/json'},
-            body: jsonEncode({'username': username, 'password': password}),
-          )
-          .timeout(const Duration(seconds: 3));
-      if (response.statusCode != 200) return false;
-      final token =
-          (jsonDecode(response.body) as Map<String, dynamic>)['token'];
-      if (token is! String || token.isEmpty) return false;
-      adminToken = token;
-      return true;
-    } catch (_) {
-      return false;
-    }
-  }
 
   Future<List<Incident>> loadUserIncidents() async {
     final preferences = await SharedPreferences.getInstance();
@@ -88,29 +65,6 @@ class IncidentRepository {
           )
           .timeout(const Duration(seconds: 3));
       return response.statusCode == 201;
-    } catch (_) {
-      return false;
-    }
-  }
-
-  Future<bool> moderateIncident(
-    Incident incident, {
-    required IncidentStatus status,
-    required IncidentRisk risk,
-  }) async {
-    if (incident.id == null || adminToken.isEmpty) return false;
-    try {
-      final response = await _client
-          .patch(
-            Uri.parse('$baseUrl/api/admin/incidents/${incident.id}'),
-            headers: {
-              'Authorization': 'Bearer $adminToken',
-              'Content-Type': 'application/json',
-            },
-            body: jsonEncode({'status': status.name, 'risk': risk.name}),
-          )
-          .timeout(const Duration(seconds: 3));
-      return response.statusCode == 200;
     } catch (_) {
       return false;
     }
