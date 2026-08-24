@@ -24,14 +24,16 @@ The Flutter prototype currently includes:
   image or video evidence selected from the device gallery, plus current GPS
   coordinates when location permission is granted.
 - **Incident map:** an interactive map with incident markers and filters by
-  type, status, and risk for Lagos Metro.
+  type, status, and risk for Lagos Metro. The map can detect and center on the
+  device with the user-triggered "Locate me" action.
 - **My reports:** submitted report history with review, verification, and
   resolution states.
 - **Safety hub:** emergency services dialing through `112` and emergency
   contact entries.
 
-The displayed data is currently local prototype data. Backend persistence,
-Backend persistence, authentication, remote media uploads, notifications, and
+The displayed data includes local prototype data, and newly submitted reports
+are persisted locally on the device. Backend persistence, authentication,
+remote media uploads, notifications, and
 admin validation are planned integration work. Map rendering now uses
 `flutter_map` with OpenStreetMap tiles and requires no API key for development.
 
@@ -126,7 +128,7 @@ flutter test
 1. **Requirements and design:** finalize report fields, user roles, risk
    levels, privacy rules, and map behavior.
 2. **Core development:** connect the Flutter screens to the Flask REST API,
-   add authentication, persistence, geolocation, and media handling.
+   add authentication, remote persistence, geolocation, and media handling.
 3. **Admin operations:** build report validation, user management, map
    analytics, exports, and audit logs.
 4. **Testing and deployment:** validate reporting workflows, permissions,

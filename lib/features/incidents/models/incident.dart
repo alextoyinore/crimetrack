@@ -29,6 +29,36 @@ class Incident {
   final double? latitude;
   final double? longitude;
 
+  Map<String, Object?> toJson() => {
+    'type': type,
+    'description': description,
+    'location': location,
+    'reportedAt': reportedAt.toIso8601String(),
+    'status': status.name,
+    'risk': risk.name,
+    'evidencePath': evidencePath,
+    'latitude': latitude,
+    'longitude': longitude,
+  };
+
+  factory Incident.fromJson(Map<String, dynamic> json) => Incident(
+    type: json['type'] as String? ?? 'Other',
+    description: json['description'] as String? ?? '',
+    location: json['location'] as String? ?? 'Unknown location',
+    reportedAt:
+        DateTime.tryParse(json['reportedAt'] as String? ?? '') ??
+        DateTime.now(),
+    status: IncidentStatus.values.byName(
+      json['status'] as String? ?? IncidentStatus.pending.name,
+    ),
+    risk: IncidentRisk.values.byName(
+      json['risk'] as String? ?? IncidentRisk.medium.name,
+    ),
+    evidencePath: json['evidencePath'] as String?,
+    latitude: (json['latitude'] as num?)?.toDouble(),
+    longitude: (json['longitude'] as num?)?.toDouble(),
+  );
+
   String get statusLabel => switch (status) {
     IncidentStatus.pending => 'Under review',
     IncidentStatus.verified => 'Verified',

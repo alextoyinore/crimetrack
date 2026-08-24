@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../home/presentation/home_page.dart';
 import '../../incidents/presentation/incidents_page.dart';
 import '../../incidents/models/incident.dart';
+import '../../incidents/data/incident_repository.dart';
 import '../../reports/presentation/reports_page.dart';
 import '../../safety/presentation/safety_page.dart';
 import '../../report/presentation/report_sheet.dart';
@@ -15,6 +16,8 @@ class Shell extends StatefulWidget {
 
 class _ShellState extends State<Shell> {
   int _tab = 0;
+  final _repository = IncidentRepository();
+  final List<Incident> _userIncidents = [];
   final List<Incident> _incidents = [
     Incident(
       type: 'Theft',
@@ -48,8 +51,29 @@ class _ShellState extends State<Shell> {
     ),
   ];
 
+  @override
+  void initState() {
+    super.initState();
+    _restoreUserIncidents();
+  }
+
+  Future<void> _restoreUserIncidents() async {
+    final saved = await _repository.loadUserIncidents();
+    if (!mounted) return;
+    setState(() {
+      _userIncidents
+        ..clear()
+        ..addAll(saved);
+      _incidents.insertAll(0, saved);
+    });
+  }
+
   void _addIncident(Incident incident) {
-    setState(() => _incidents.insert(0, incident));
+    setState(() {
+      _userIncidents.insert(0, incident);
+      _incidents.insert(0, incident);
+    });
+    _repository.saveUserIncidents(_userIncidents);
   }
 
   void _showReport() => showModalBottomSheet(
