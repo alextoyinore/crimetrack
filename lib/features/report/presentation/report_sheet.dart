@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:record/record.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../incidents/models/incident.dart';
@@ -19,11 +21,37 @@ class _ReportSheetState extends State<ReportSheet> {
   final _descriptionController = TextEditingController();
   final _locationController = TextEditingController();
   final _picker = ImagePicker();
+  final _recorder = AudioRecorder();
   String _type = 'Theft';
   String? _evidencePath;
   double? _latitude;
   double? _longitude;
   bool _locating = false;
+  bool _recording = false;
+
+  Future<void> _recordAudio() async {
+    if (_recording) {
+      final path = await _recorder.stop();
+      if (!mounted) return;
+      setState(() {
+        _recording = false;
+        _evidencePath = path;
+      });
+      return;
+    }
+    if (!await _recorder.hasPermission()) {
+      _showMessage('Microphone permission is required to record audio');
+      return;
+    }
+    final directory = await getTemporaryDirectory();
+    final path =
+        '${directory.path}/crimetrack_${DateTime.now().millisecondsSinceEpoch}.m4a';
+    await _recorder.start(
+      const RecordConfig(encoder: AudioEncoder.aacLc),
+      path: path,
+    );
+    if (mounted) setState(() => _recording = true);
+  }
 
   Future<void> _useCurrentLocation() async {
     setState(() => _locating = true);
@@ -101,6 +129,14 @@ class _ReportSheetState extends State<ReportSheet> {
               title: const Text('Record a video'),
               onTap: () => Navigator.pop(context, (ImageSource.camera, true)),
             ),
+            ListTile(
+              leading: Icon(_recording ? Icons.stop : Icons.mic_none),
+              title: Text(_recording ? 'Stop recording' : 'Record audio'),
+              onTap: () {
+                Navigator.pop(context);
+                _recordAudio();
+              },
+            ),
           ],
         ),
       ),
@@ -113,6 +149,7 @@ class _ReportSheetState extends State<ReportSheet> {
   void dispose() {
     _descriptionController.dispose();
     _locationController.dispose();
+    _recorder.dispose();
     super.dispose();
   }
 

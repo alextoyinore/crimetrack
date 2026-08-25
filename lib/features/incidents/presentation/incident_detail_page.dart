@@ -20,6 +20,15 @@ class IncidentDetailPage extends StatelessWidget {
         path.endsWith('.webm');
   }
 
+  bool get _isAudio {
+    final path = incident.evidencePath?.toLowerCase() ?? '';
+    return path.endsWith('.m4a') ||
+        path.endsWith('.aac') ||
+        path.endsWith('.mp3') ||
+        path.endsWith('.wav') ||
+        path.endsWith('.ogg');
+  }
+
   Future<void> _openVideo(BuildContext context) async {
     final path = incident.evidencePath;
     if (path == null) return;
@@ -44,6 +53,13 @@ class IncidentDetailPage extends StatelessWidget {
         onPressed: () => _openVideo(context),
         icon: const Icon(Icons.play_arrow),
         label: const Text('Open video'),
+      );
+    }
+    if (_isAudio) {
+      return FilledButton.icon(
+        onPressed: () => _openVideo(context),
+        icon: const Icon(Icons.volume_up),
+        label: const Text('Open audio'),
       );
     }
     final image = path.startsWith('http')

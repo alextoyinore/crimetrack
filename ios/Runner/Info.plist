@@ -26,6 +26,8 @@
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>CrimeTrack uses your location to place an incident report accurately.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>CrimeTrack uses the microphone when you choose to add an audio description to a report.</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>UIApplicationSceneManifest</key>

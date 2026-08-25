@@ -31,6 +31,7 @@ class _ShellState extends State<Shell> {
   final List<Incident> _userIncidents = [];
   final List<AppNotification> _notifications = [];
   Timer? _notificationTimer;
+  Timer? _incidentTimer;
   final List<Incident> _incidents = [];
 
   @override
@@ -43,6 +44,10 @@ class _ShellState extends State<Shell> {
       const Duration(seconds: 15),
       (_) => _restoreNotifications(),
     );
+    _incidentTimer = Timer.periodic(
+      const Duration(seconds: 15),
+      (_) => _restoreIncidents(),
+    );
   }
 
   Future<void> _restoreIncidents() async {
@@ -52,6 +57,13 @@ class _ShellState extends State<Shell> {
       _incidents
         ..clear()
         ..addAll(incidents);
+      for (final index in _userIncidents.indexed) {
+        final incident = incidents.cast<Incident?>().firstWhere(
+          (item) => item?.id == index.$2.id,
+          orElse: () => null,
+        );
+        if (incident != null) _userIncidents[index.$1] = incident;
+      }
     });
   }
 
@@ -72,7 +84,6 @@ class _ShellState extends State<Shell> {
       _userIncidents
         ..clear()
         ..addAll(saved);
-      _incidents.insertAll(0, saved);
     });
   }
 
@@ -83,7 +94,11 @@ class _ShellState extends State<Shell> {
     });
     await _repository.saveUserIncidents(_userIncidents);
     final synced = await _repository.submitIncident(incident);
-    if (synced) await _restoreNotifications();
+    if (synced) {
+      await _restoreIncidents();
+      await _restoreUserIncidents();
+      await _restoreNotifications();
+    }
     if (!synced && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -149,6 +164,7 @@ class _ShellState extends State<Shell> {
   @override
   void dispose() {
     _notificationTimer?.cancel();
+    _incidentTimer?.cancel();
     super.dispose();
   }
 
@@ -176,7 +192,7 @@ class _ShellState extends State<Shell> {
             themeMode: widget.themeMode,
           ),
           IncidentsPage(incidents: _incidents),
-          ReportsPage(incidents: _incidents),
+          ReportsPage(incidents: _userIncidents),
           const SafetyPage(),
         ],
       ),

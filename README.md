@@ -25,8 +25,8 @@ The Flutter prototype currently includes:
 - **Branded splash screen:** animated CrimeTrack startup screen using the same
   radar logo shown on the Overview page.
 - **Report an incident:** incident type, description, location, and optional
-  image or video evidence selected from the device gallery, plus current GPS
-  coordinates when location permission is granted.
+  image, video, or audio evidence selected or captured on the device, plus
+  current GPS coordinates when location permission is granted.
 - **Incident map:** an interactive map with incident markers and filters by
   type, status, and risk for Lagos Metro. The map can detect and center on the
   device with the user-triggered "Locate me" action.
