@@ -1,5 +1,6 @@
 import tempfile
 import unittest
+from io import BytesIO
 from pathlib import Path
 
 from app import create_app
@@ -165,6 +166,52 @@ class IncidentApiTest(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIn(b"Report analytics", response.data)
         self.assertIn(b"Robbery", response.data)
+
+    def test_multipart_evidence_is_stored_and_admin_detail_renders_it(self):
+        response = self.client.post(
+            "/api/incidents",
+            data={
+                "type": "Theft",
+                "description": "Evidence report.",
+                "location": "Abuja",
+                "deviceId": "device-evidence",
+                "evidence": (BytesIO(b"fake image bytes"), "photo.jpg"),
+            },
+            content_type="multipart/form-data",
+        )
+        self.assertEqual(response.status_code, 201)
+        evidence_path = response.json["evidence_path"]
+        self.assertTrue(evidence_path.endswith("_photo.jpg"))
+
+        detail = self.client.get(f"/admin/incidents/{response.json['id']}")
+        self.assertEqual(detail.status_code, 302)
+
+        app = create_app(
+            Path(self.temp_directory.name) / "evidence-admin.db",
+            admin_token="test-token",
+        )
+        app.config["ADMIN_USERNAME"] = "admin"
+        app.config["ADMIN_PASSWORD"] = "secret"
+        client = app.test_client()
+        created = client.post(
+            "/api/incidents",
+            data={
+                "type": "Theft",
+                "description": "Evidence report.",
+                "location": "Abuja",
+                "deviceId": "device-evidence",
+                "evidence": (BytesIO(b"fake image bytes"), "photo.jpg"),
+            },
+            content_type="multipart/form-data",
+        )
+        client.post("/admin/login", data={"username": "admin", "password": "secret"})
+        incident_id = created.json["id"]
+        detail = client.get(f"/admin/incidents/{incident_id}")
+        self.assertEqual(detail.status_code, 200)
+        self.assertIn(b"photo.jpg", detail.data)
+        media = client.get(f"/media/{created.json['evidence_path']}")
+        self.assertEqual(media.status_code, 200)
+        self.assertEqual(media.data, b"fake image bytes")
 
     def test_web_admin_login_and_moderation(self):
         app = create_app(

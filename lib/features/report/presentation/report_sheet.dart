@@ -75,7 +75,7 @@ class _ReportSheetState extends State<ReportSheet> {
   }
 
   Future<void> _chooseEvidence() async {
-    final selection = await showModalBottomSheet<bool>(
+    final selection = await showModalBottomSheet<(ImageSource, bool)?>(
       context: context,
       backgroundColor: Theme.of(context).colorScheme.surface,
       builder: (context) => SafeArea(
@@ -84,19 +84,29 @@ class _ReportSheetState extends State<ReportSheet> {
             ListTile(
               leading: const Icon(Icons.photo_outlined),
               title: const Text('Choose an image'),
-              onTap: () => Navigator.pop(context, false),
+              onTap: () => Navigator.pop(context, (ImageSource.gallery, false)),
             ),
             ListTile(
               leading: const Icon(Icons.videocam_outlined),
               title: const Text('Choose a video'),
-              onTap: () => Navigator.pop(context, true),
+              onTap: () => Navigator.pop(context, (ImageSource.gallery, true)),
+            ),
+            ListTile(
+              leading: const Icon(Icons.camera_alt_outlined),
+              title: const Text('Take a picture'),
+              onTap: () => Navigator.pop(context, (ImageSource.camera, false)),
+            ),
+            ListTile(
+              leading: const Icon(Icons.videocam_outlined),
+              title: const Text('Record a video'),
+              onTap: () => Navigator.pop(context, (ImageSource.camera, true)),
             ),
           ],
         ),
       ),
     );
     if (selection == null) return;
-    await _pickEvidence(ImageSource.gallery, video: selection);
+    await _pickEvidence(selection.$1, video: selection.$2);
   }
 
   @override

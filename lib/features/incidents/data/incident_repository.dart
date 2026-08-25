@@ -94,6 +94,32 @@ class IncidentRepository {
   Future<bool> submitIncident(Incident incident) async {
     try {
       final deviceId = await _deviceId();
+      if (incident.evidencePath != null && incident.evidencePath!.isNotEmpty) {
+        final request =
+            http.MultipartRequest('POST', Uri.parse('$baseUrl/api/incidents'))
+              ..fields.addAll({
+                'type': incident.type,
+                'description': incident.description,
+                'location': incident.location,
+                'reportedAt': incident.reportedAt.toIso8601String(),
+                'risk': incident.risk.name,
+                'deviceId': deviceId,
+                if (incident.latitude != null)
+                  'latitude': '${incident.latitude}',
+                if (incident.longitude != null)
+                  'longitude': '${incident.longitude}',
+              })
+              ..files.add(
+                await http.MultipartFile.fromPath(
+                  'evidence',
+                  incident.evidencePath!,
+                ),
+              );
+        final response = await _client
+            .send(request)
+            .timeout(const Duration(seconds: 10));
+        return response.statusCode == 201;
+      }
       final payload = incident.toJson()..['deviceId'] = deviceId;
       final response = await _client
           .post(

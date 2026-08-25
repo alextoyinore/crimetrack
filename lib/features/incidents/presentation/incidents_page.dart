@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../core/widgets/map_preview.dart';
 import '../../../core/widgets/page_title.dart';
 import '../models/incident.dart';
+import '../presentation/incident_detail_page.dart';
 
 class IncidentsPage extends StatefulWidget {
   const IncidentsPage({super.key, required this.incidents});
@@ -75,6 +76,12 @@ class _IncidentsPageState extends State<IncidentsPage> {
                   location: incident.location,
                   time: incident.relativeTime,
                   color: incident.riskColor,
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => IncidentDetailPage(incident: incident),
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -193,48 +200,54 @@ class IncidentItem extends StatelessWidget {
     required this.location,
     required this.time,
     required this.color,
+    required this.onTap,
   });
   final String type, location, time;
   final Color color;
+  final VoidCallback onTap;
   @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.all(14),
-    decoration: BoxDecoration(
-      color: Theme.of(context).colorScheme.surface,
-      borderRadius: BorderRadius.circular(11),
-    ),
-    child: Row(
-      children: [
-        Container(
-          width: 9,
-          height: 9,
-          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(type, style: const TextStyle(fontWeight: FontWeight.w700)),
-              const SizedBox(height: 4),
-              Text(
-                location,
-                style: TextStyle(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  fontSize: 12,
+  Widget build(BuildContext context) => InkWell(
+    onTap: onTap,
+    borderRadius: BorderRadius.circular(11),
+    child: Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: BorderRadius.circular(11),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 9,
+            height: 9,
+            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(type, style: const TextStyle(fontWeight: FontWeight.w700)),
+                const SizedBox(height: 4),
+                Text(
+                  location,
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    fontSize: 12,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
-        Text(
-          time,
-          style: TextStyle(
-            color: Theme.of(context).colorScheme.onSurfaceVariant,
-            fontSize: 11,
+          Text(
+            time,
+            style: TextStyle(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+              fontSize: 11,
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     ),
   );
 }

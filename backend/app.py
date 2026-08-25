@@ -1,11 +1,13 @@
 import os
 import hmac
 import sqlite3
+import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 
 from dotenv import load_dotenv
-from flask import Flask, jsonify, redirect, render_template, request, session, url_for
+from flask import Flask, jsonify, redirect, render_template, request, send_from_directory, session, url_for
+from werkzeug.utils import secure_filename
 
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -19,6 +21,9 @@ ALLOWED_STATUSES = {"pending", "verified", "resolved", "rejected", "flagged"}
 def create_app(database_path=DATABASE_PATH, admin_token=None):
     app = Flask(__name__)
     app.config["DATABASE_PATH"] = str(database_path)
+    app.config["EVIDENCE_DIRECTORY"] = str(
+        Path(database_path).parent / "evidence"
+    )
     app.config["ADMIN_TOKEN"] = (
         admin_token if admin_token is not None else os.environ.get("CRIMETRACK_ADMIN_TOKEN")
     )
@@ -36,6 +41,10 @@ def create_app(database_path=DATABASE_PATH, admin_token=None):
     @app.get("/health")
     def health():
         return jsonify({"status": "ok"})
+
+    @app.get("/media/<path:filename>")
+    def media(filename):
+        return send_from_directory(app.config["EVIDENCE_DIRECTORY"], filename)
 
     @app.get("/api/incidents")
     def list_incidents():
@@ -203,6 +212,19 @@ def create_app(database_path=DATABASE_PATH, admin_token=None):
             daily_trend=[dict(row) for row in trend_rows],
         )
 
+    @app.get("/admin/incidents/<int:incident_id>")
+    def admin_incident_detail(incident_id):
+        if not session.get("admin_authenticated"):
+            return redirect(url_for("admin_login_page"))
+        connection = _connect(app.config["DATABASE_PATH"])
+        incident = connection.execute(
+            "SELECT * FROM incidents WHERE id = ?", (incident_id,)
+        ).fetchone()
+        connection.close()
+        if incident is None:
+            return "Incident not found", 404
+        return render_template("admin_incident_detail.html", incident=dict(incident))
+
     @app.post("/admin/incidents/<int:incident_id>/moderate")
     def admin_moderate_form(incident_id):
         if not session.get("admin_authenticated"):
@@ -234,7 +256,8 @@ def create_app(database_path=DATABASE_PATH, admin_token=None):
 
     @app.post("/api/incidents")
     def create_incident():
-        payload = request.get_json(silent=True)
+        multipart = bool(request.files)
+        payload = request.form.to_dict() if multipart else request.get_json(silent=True)
         if not isinstance(payload, dict):
             return jsonify({"error": "Request body must be a JSON object"}), 400
 
@@ -279,7 +302,9 @@ def create_app(database_path=DATABASE_PATH, admin_token=None):
                 reported_at,
                 "pending",
                 risk,
-                payload.get("evidencePath"),
+                _save_evidence(request.files.get("evidence"), app.config["EVIDENCE_DIRECTORY"])
+                if multipart
+                else payload.get("evidencePath"),
                 latitude,
                 longitude,
                 payload.get("deviceId"),
@@ -428,6 +453,19 @@ def _create_notification(connection, device_id, title, message, incident_id):
         """,
         (device_id.strip(), title, message, incident_id, datetime.now(timezone.utc).isoformat()),
     )
+
+
+def _save_evidence(file, evidence_directory):
+    if file is None or not file.filename:
+        return None
+    filename = secure_filename(file.filename)
+    if not filename:
+        return None
+    stored_name = f"{uuid.uuid4().hex}_{filename}"
+    directory = Path(evidence_directory)
+    directory.mkdir(parents=True, exist_ok=True)
+    file.save(directory / stored_name)
+    return stored_name
 
 
 def _authorized_admin(request, admin_token):
